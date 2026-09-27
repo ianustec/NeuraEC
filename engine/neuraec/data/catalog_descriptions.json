@@ -1,0 +1,35 @@
+{
+  "fig": {
+    "ceo_titolare": "Titolare o amministratore delegato. Decide su investimenti, contratti strategici, vertenze, comunicazioni riservate e rapporti con soci, banche e consulenti.",
+    "dirigente": "Dirigente. Riceve report di area, decisioni da validare, escalation operative e comunicazioni verso il consiglio o la direzione generale.",
+    "manager": "Manager di funzione o di progetto. Coordina team, scadenze, budget di area, riunioni operative e richieste dai collaboratori e dai pari.",
+    "impiegato": "Impiegato. Gestisce pratiche quotidiane, richieste interne, documenti da compilare, ticket e comunicazioni di servizio.",
+    "operaio": "Operaio o addetto operativo. Turni, ordini di lavoro, sicurezza, materiali e comunicazioni dal capo turno o dalla produzione."
+  },
+  "fun": {
+    "direzione_generale": "Direzione generale. Strategie, obiettivi aziendali, commesse rilevanti, rapporti istituzionali e decisioni che coinvolgono più funzioni.",
+    "risorse_umane": "Risorse umane. Assunzioni, buste paga, ferie, contratti di lavoro, valutazioni, formazione e comunicazioni sindacali.",
+    "amministrazione_finanza_ufficiolegale": "Amministrazione, finanza e ufficio legale. Fatture, pagamenti, adempimenti fiscali, contratti, solleciti, banche e contenziosi.",
+    "it": "Information technology. Ticket, incident, accessi, server, software, fornitori informatici e richieste di assistenza tecnica.",
+    "acquisti": "Acquisti. Ordini a fornitori, richieste di offerta, conferme d'ordine, solleciti di consegna, listini e condizioni di pagamento.",
+    "logistica": "Logistica. Spedizioni, tracking, magazzino, trasportatori, documenti di trasporto e ritardi di consegna.",
+    "marketing_vendite": "Marketing e vendite. Offerte commerciali, clienti, campagne, listini, lead e follow-up di trattative.",
+    "ricerca_sviluppo": "Ricerca e sviluppo. Specifiche tecniche, prototipi, brevetti, prove di laboratorio e collaborazioni di progetto.",
+    "produzione": "Produzione. Piani di lavoro, fermi macchina, qualità, commesse in linea e comunicazioni di stabilimento."
+  },
+  "set": {
+    "alimentare": "Settore alimentare. Lotti, scadenze, certificazioni igieniche, fornitori di materie prime e GDO.",
+    "educazione": "Istruzione e formazione. Corsi, iscrizioni, docenti, enti accreditati e comunicazioni a famiglie o allievi.",
+    "media_pubblicita_intrattenimento": "Media, pubblicità e intrattenimento. Campagne, inserzioni, diritti, uscite editoriali e materiali creativi.",
+    "farmaceutico_sanitario": "Farmaceutico e sanitario. Prescrizioni, lotti, normativa, dispositivi medici e comunicazioni cliniche.",
+    "ict_telecomunicazioni": "ICT e telecomunicazioni. Reti, sim, canoni, SLA, ticket di connettività e fornitori di infrastruttura.",
+    "manifatturiero": "Manifatturiero. Distinte base, commesse di officina, qualità, materie prime e macchinari.",
+    "retail": "Retail. Punti vendita, riassortimenti, promozioni, rese e comunicazioni di rete.",
+    "sport": "Sport. Iscrizioni, gare, sponsor, impianti e comunicazioni a tesserati.",
+    "assicurazioni_finanza_legale": "Assicurazioni, finanza e legale. Polizze, sinistri, pratiche, contratti e adempimenti normativi.",
+    "logistica_trasporti": "Logistica e trasporti. Corrieri, dogane, tracking, ritiri e consegne.",
+    "pubblica_amministrazione": "Pubblica amministrazione. Bandi, protocollo, scadenze amministrative e comunicazioni istituzionali.",
+    "turismo": "Turismo e ospitalità. Prenotazioni, cancellazioni, voucher, stagionalità e fornitori ricettivi.",
+    "altro": "Altri settori. Comunicazioni generiche di lavoro, fornitori e pratiche amministrative."
+  }
+}

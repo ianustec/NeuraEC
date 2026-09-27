@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "neuraec"
+version = "0.1.0"
+description = "NEURA email priority classifier"
+requires-python = ">=3.11"
+dependencies = ["numpy", "imap-tools"]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+encoder = ["sentence-transformers"]
+gmail = ["google-api-python-client", "google-auth", "google-auth-oauthlib"]
+graph = ["msal", "requests"]
+prior = ["torch"]
+
+[project.scripts]
+neuraec = "neuraec.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["neuraec*"]
+
+[tool.setuptools.package-data]
+neuraec = ["data/*.json", "data/*.npz"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

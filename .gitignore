@@ -1,0 +1,24 @@
+.DS_Store
+**/.DS_Store
+**/__pycache__/
+*.py[cod]
+
+# Finestra
+app/.dart_tool/
+app/build/
+app/dist/
+app/.flutter-plugins
+app/.flutter-plugins-dependencies
+app/macos/Pods/
+app/**/ephemeral/
+
+# Motore
+engine/.venv/
+engine/dist/
+engine/build/
+engine/.pytest_cache/
+engine/*.egg-info
+engine/riprogettazione-algoritmo-classificazione.md
+engine/mailbox.json
+engine/.env
+engine/.neura-work/

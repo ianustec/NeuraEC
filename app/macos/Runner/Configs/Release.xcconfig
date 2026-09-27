@@ -1,0 +1,7 @@
+#include "../../Flutter/Flutter-Release.xcconfig"
+#include "Warnings.xcconfig"
+
+// Il motore Python congelato e' solo arm64: l'app segue.
+// Evita anche il confronto sbagliato di `lipo -info` in Flutter 3.27.
+ARCHS = arm64
+ONLY_ACTIVE_ARCH = YES

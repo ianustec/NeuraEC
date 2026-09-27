@@ -1,0 +1,20 @@
+{
+  "mailbox_id": "mb-locale",
+  "user_id": "me",
+  "own_addresses": ["nome@dominio.it"],
+  "N": 4,
+  "order": "desc",
+  "provider": "imap",
+  "label_prefix": "N-P",
+  "host": "imap.dominio.it",
+  "username": "nome@dominio.it",
+  "port": 993,
+  "tls": "ssl",
+  "profile": {"fig": [], "fun": [], "set": []},
+  "labels": [
+    {"rank": 0, "provider_label": "INBOX.N-P1", "text": "Priority 1"},
+    {"rank": 1, "provider_label": "INBOX.N-P2", "text": "Priority 2"},
+    {"rank": 2, "provider_label": "INBOX.N-P3", "text": "Priority 3"},
+    {"rank": 3, "provider_label": "INBOX.N-P4", "text": "Priority 4"}
+  ]
+}

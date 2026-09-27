@@ -1,0 +1,42 @@
+"""Initial parameters from specification §12."""
+
+ENCODER_DIM = 384
+ENCODER_MAX_TOKENS = 256
+DEFAULT_ENCODER_NAME = "paraphrase-multilingual-MiniLM-L12-v2"
+FAKE_ENCODER_NAME = "fake-hash-384"
+SNIPPET_CHARS = 1000
+
+M_MAX = 10_000
+MEMORY_K = 16
+MEMORY_COS_TAU = 0.35
+MEMORY_TEMPERATURE = 0.07
+
+CONF_THREAD_USER = 0.95
+CONF_THREAD_MODEL = 0.6
+CONF_PRIOR = 0.15
+CONF_PRIOR_V1 = 0.3
+
+# mittente / dominio: c = scale · (1 − exp(−n_eff / n_scale)) · agree
+SENDER_CONF_SCALE = 1.0
+SENDER_N_SCALE = 2.0
+DOMAIN_CONF_SCALE = 0.6
+DOMAIN_N_SCALE = 4.0
+
+# prior: sotto questa massa di esemplari forti si usa la gaussiana attorno alle regole
+PRIOR_COLD_MASS = 5.0
+PRIOR_LAPLACE = 0.5
+PRIOR_GAUSS_SIGMA = 0.2
+PRIOR_TILT_BETA = 4.0
+
+WEIGHT_CORR = 1.0
+WEIGHT_MANUAL = 1.0
+WEIGHT_REPLIED = 0.5
+WEIGHT_CONF = 0.2
+CONF_PER_SENDER_WEEK = 3
+
+HALF_LIFE_DAYS = 90.0
+OBSERVE_DELAY_HOURS = 24
+OPEN_EXPIRE_DAYS = 30
+SENT_LOOKBACK_DAYS = 90
+
+MODEL_VERSION = "neura-tappa1-dist"
