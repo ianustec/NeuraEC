@@ -25,7 +25,7 @@ def main(argv: list[str]) -> int:
         return 0
     from sentence_transformers import SentenceTransformer
 
-    model = SentenceTransformer(DEFAULT_ENCODER_NAME)
+    model = SentenceTransformer(DEFAULT_ENCODER_NAME, device="cpu")
     target.parent.mkdir(parents=True, exist_ok=True)
     model.save(str(target))
     print(f"modello salvato in {target}")

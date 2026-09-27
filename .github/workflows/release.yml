@@ -26,6 +26,8 @@ jobs:
           echo "tag=v${version}" >> "$GITHUB_OUTPUT"
 
   macos:
+    # The notarized disk image is built on the IANUSTEC Mac. A push to main does not replace it.
+    if: ${{ github.event_name == 'workflow_dispatch' }}
     needs: version
     runs-on: macos-14
     timeout-minutes: 90
@@ -76,16 +78,29 @@ jobs:
           python -m venv .venv
           .\.venv\Scripts\python -m pip install -U pip
           .\.venv\Scripts\python -m pip install -e ".[encoder,gmail,graph]" pyinstaller
+          .\.venv\Scripts\python -m pip install torch --index-url https://download.pytorch.org/whl/cpu --upgrade
           .\.venv\Scripts\python packaging/export_model.py dist/model
           .\.venv\Scripts\pyinstaller --noconfirm --workpath build/pyinstaller --distpath dist packaging/neura-engine.spec
       - name: Build the window and pack it
         shell: pwsh
+        env:
+          NEURA_WIN_PFX: ${{ secrets.NEURA_WIN_PFX }}
+          NEURA_WIN_PFX_PASSWORD: ${{ secrets.NEURA_WIN_PFX_PASSWORD }}
         run: |
           Set-Location app
           flutter build windows --release
           $release = "build/windows/x64/runner/Release"
           Copy-Item -Recurse "../engine/dist/neura-engine" "$release/engine"
           Copy-Item -Recurse "../engine/dist/model" "$release/model"
+          $pfx = "$env:RUNNER_TEMP\ianustec.pfx"
+          [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:NEURA_WIN_PFX))
+          $signtool = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin" -Recurse -Filter signtool.exe |
+            Where-Object { $_.FullName -match '\\x64\\' } |
+            Sort-Object FullName -Descending |
+            Select-Object -First 1 -ExpandProperty FullName
+          foreach ($exe in @("$release\neura_app.exe", "$release\engine\neura-engine.exe")) {
+            & $signtool sign /f $pfx /p $env:NEURA_WIN_PFX_PASSWORD /fd SHA256 /d "NeuraEC" $exe
+          }
           Compress-Archive -Path "$release/*" -DestinationPath "../NeuraEC-Windows.zip"
       - uses: actions/upload-artifact@v4
         with:
@@ -111,12 +126,16 @@ jobs:
         with:
           python-version: "3.12"
       - name: Freeze the engine and pack the window
+        env:
+          NEURA_GPG_PRIVATE: ${{ secrets.NEURA_GPG_PRIVATE }}
+          NEURA_GPG_PASSPHRASE: ${{ secrets.NEURA_GPG_PASSPHRASE }}
         run: |
           set -euo pipefail
           cd engine
           python3 -m venv .venv
           .venv/bin/python -m pip install -U pip
           .venv/bin/python -m pip install -e ".[encoder,gmail,graph]" pyinstaller
+          .venv/bin/python -m pip install torch --index-url https://download.pytorch.org/whl/cpu --upgrade
           .venv/bin/python packaging/export_model.py dist/model
           .venv/bin/pyinstaller --noconfirm --workpath build/pyinstaller --distpath dist packaging/neura-engine.spec
           cd ../app
@@ -125,14 +144,19 @@ jobs:
           cp -a ../engine/dist/neura-engine "$bundle/engine"
           cp -a ../engine/dist/model "$bundle/model"
           tar -C build/linux/x64/release -czf "$GITHUB_WORKSPACE/NeuraEC-Linux.tar.gz" bundle
+          gpg --batch --import <<< "$NEURA_GPG_PRIVATE"
+          gpg --batch --pinentry-mode loopback --passphrase "$NEURA_GPG_PASSPHRASE" \
+            --detach-sign --armor "$GITHUB_WORKSPACE/NeuraEC-Linux.tar.gz"
       - uses: actions/upload-artifact@v4
         with:
           name: linux
-          path: NeuraEC-Linux.tar.gz
+          path: |
+            NeuraEC-Linux.tar.gz
+            NeuraEC-Linux.tar.gz.asc
           if-no-files-found: error
 
   publish:
-    needs: [version, macos, windows, linux]
+    needs: [version, windows, linux]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
@@ -144,20 +168,21 @@ jobs:
           TAG: ${{ needs.version.outputs.tag }}
         run: |
           set -euo pipefail
+          win="dist/windows/NeuraEC-Windows.zip"
+          lin="dist/linux/NeuraEC-Linux.tar.gz"
+          sig="dist/linux/NeuraEC-Linux.tar.gz.asc"
           if gh release view "$TAG" >/dev/null 2>&1; then
-            echo "Release $TAG already exists. Bump the version in app/pubspec.yaml before the next merge to main."
-            exit 1
+            gh release upload "$TAG" "$win" "$lin" "$sig" --clobber
+          else
+            notes="Desktop builds of NeuraEC ${TAG}.
+
+            - macOS (Apple Silicon): NeuraEC.dmg, signed by IANUSTEC and notarized by Apple.
+            - Windows: NeuraEC-Windows.zip. Unzip and run neura_app.exe.
+            - Linux: NeuraEC-Linux.tar.gz. Unpack and run bundle/neura_app. The .asc file is the IANUSTEC signature.
+
+            The engine and the language model are inside each download. Mail stays on your computer."
+            gh release create "$TAG" \
+              --title "NeuraEC $TAG" \
+              --notes "$notes" \
+              "$win" "$lin" "$sig"
           fi
-          notes="Desktop builds of NeuraEC ${TAG}.
-
-          - macOS (Apple Silicon): NeuraEC.dmg. Built in the open. Without Apple notarization secrets on this repository, Gatekeeper asks you to allow the app.
-          - Windows: NeuraEC-Windows.zip. Unzip and run neura_app.exe.
-          - Linux: NeuraEC-Linux.tar.gz. Unpack and run bundle/neura_app.
-
-          The engine and the language model are inside each download. Mail stays on your computer."
-          gh release create "$TAG" \
-            --title "NeuraEC $TAG" \
-            --notes "$notes" \
-            dist/macos/NeuraEC.dmg \
-            dist/windows/NeuraEC-Windows.zip \
-            dist/linux/NeuraEC-Linux.tar.gz

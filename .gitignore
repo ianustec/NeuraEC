@@ -22,3 +22,8 @@ engine/riprogettazione-algoritmo-classificazione.md
 engine/mailbox.json
 engine/.env
 engine/.neura-work/
+
+# Chiavi private di firma. I file pubblici in signing/ si pubblicano.
+signing/*.key
+signing/*.pfx
+signing/*passphrase*
