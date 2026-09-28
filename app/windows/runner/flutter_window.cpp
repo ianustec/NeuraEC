@@ -62,25 +62,17 @@ bool FlutterWindow::OnCreate() {
           result->Success();
         } else if (call.method_name() == "update") {
           if (const auto* args = std::get_if<flutter::EncodableMap>(call.arguments())) {
-            account_ = ReadArg(*args, "account");
-            waiting_ = ReadArg(*args, "waiting");
-            per100_ = ReadArg(*args, "per100");
-            accuracy_ = ReadArg(*args, "accuracy");
             service_ = ReadArg(*args, "service");
             auto take = [&](const char* key, std::string& dest) {
               const auto value = ReadArg(*args, key);
               if (!value.empty()) dest = value;
             };
-            take("menuClassified", menu_classified_);
-            take("menuPer100", menu_per100_);
-            take("menuRight", menu_right_);
             take("menuActive", menu_active_);
             take("menuPaused", menu_paused_);
             take("menuStart", menu_start_);
             take("menuPause", menu_pause_);
             take("menuOpen", menu_open_);
             take("menuQuit", menu_quit_);
-            if (account_.empty()) account_ = "NEURA";
           }
           result->Success();
         } else {
@@ -159,11 +151,6 @@ void FlutterWindow::ShowTrayMenu() {
   if (!hwnd) return;
   const bool on = service_ == "on";
   HMENU menu = CreatePopupMenu();
-  AppendMenuW(menu, MF_STRING | MF_GRAYED, 0, Wide(account_).c_str());
-  AppendMenuW(menu, MF_STRING | MF_GRAYED, 0, Wide(menu_classified_ + ": " + waiting_).c_str());
-  AppendMenuW(menu, MF_STRING | MF_GRAYED, 0, Wide(menu_per100_ + ": " + per100_).c_str());
-  AppendMenuW(menu, MF_STRING | MF_GRAYED, 0, Wide(menu_right_ + ": " + accuracy_).c_str());
-  AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
   AppendMenuW(menu, MF_STRING | MF_GRAYED, 0, Wide(on ? menu_active_ : menu_paused_).c_str());
   AppendMenuW(menu, MF_STRING | (on ? MF_GRAYED : MF_ENABLED), kCmdStart, Wide(menu_start_).c_str());
   AppendMenuW(menu, MF_STRING | (on ? MF_ENABLED : MF_GRAYED), kCmdStop, Wide(menu_pause_).c_str());

@@ -659,17 +659,9 @@ class _NeuraHomeState extends State<NeuraHome> {
     if (!mounted || _slots.isEmpty) return;
     if (!Platform.isMacOS && !Platform.isWindows) return;
     final s = AppText.of(context);
-    final stats = _stats;
     await MenuBarBridge.update(
-      account: _slots[_selected].titleFor(s),
-      waiting: '${stats?.open ?? 0}',
-      per100: (stats?.correctionsPer100 ?? 0).toStringAsFixed(2),
-      accuracy: stats == null || stats.labeled == 0 ? '—' : '${(stats.accuracy * 100).round()}%',
       serviceOn: _serviceOn,
       labels: {
-        'menuClassified': s.classified,
-        'menuPer100': s.correctionsPer100Menu,
-        'menuRight': s.alreadyRight,
         'menuActive': s.classificationOn,
         'menuPaused': s.classificationPaused,
         'menuStart': s.startClassification,

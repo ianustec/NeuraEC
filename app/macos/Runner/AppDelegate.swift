@@ -78,12 +78,6 @@ final class MenuBarController: NSObject {
     let menu = NSMenu()
     // Senza questo, AppKit ignora isEnabled e riaccende ogni voce che ha un'azione.
     menu.autoenablesItems = false
-    let account = stats["account"].flatMap { $0.isEmpty ? nil : $0 } ?? "NEURA"
-    menu.addItem(disabled(account))
-    menu.addItem(disabled("\(label("menuClassified", "Classificate")): \(stats["waiting"] ?? "0")"))
-    menu.addItem(disabled("\(label("menuPer100", "Correzioni / 100")): \(stats["per100"] ?? "0.00")"))
-    menu.addItem(disabled("\(label("menuRight", "Nel posto giusto")): \(stats["accuracy"] ?? "—")"))
-    menu.addItem(.separator())
     let status = NSMenuItem(
       title: serviceOn ? label("menuActive", "Classificazione attiva") : label("menuPaused", "Classificazione in pausa"),
       action: nil,
@@ -114,12 +108,6 @@ final class MenuBarController: NSObject {
     let value = stats[key]
     if let value, !value.isEmpty { return value }
     return fallback
-  }
-
-  private func disabled(_ title: String) -> NSMenuItem {
-    let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
-    item.isEnabled = false
-    return item
   }
 
   @objc private func startService() {

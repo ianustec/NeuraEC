@@ -11,19 +11,11 @@ class MenuBarBridge {
   }
 
   static Future<void> update({
-    required String account,
-    required String waiting,
-    required String per100,
-    required String accuracy,
     required bool serviceOn,
     Map<String, String> labels = const {},
   }) async {
     try {
       await _channel.invokeMethod('update', {
-        'account': account,
-        'waiting': waiting,
-        'per100': per100,
-        'accuracy': accuracy,
         'service': serviceOn ? 'on' : 'off',
         ...labels,
       });

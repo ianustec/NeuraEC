@@ -38,14 +38,7 @@ class FlutterWindow : public Win32Window {
   std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>> channel_;
 
   bool tray_added_ = false;
-  std::string account_ = "NEURA";
-  std::string waiting_ = "0";
-  std::string per100_ = "0.00";
-  std::string accuracy_ = "0.000";
   std::string service_ = "off";
-  std::string menu_classified_ = "Classificate";
-  std::string menu_per100_ = "Correzioni / 100";
-  std::string menu_right_ = "Nel posto giusto";
   std::string menu_active_ = "Classificazione attiva";
   std::string menu_paused_ = "Classificazione in pausa";
   std::string menu_start_ = "Avvia classificazione";
