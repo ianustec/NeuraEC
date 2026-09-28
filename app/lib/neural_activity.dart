@@ -48,7 +48,7 @@ class _NeuralActivityState extends State<NeuralActivity>
     return LayoutBuilder(
       builder: (context, constraints) {
         final maxW = constraints.maxWidth.isFinite ? constraints.maxWidth : 640.0;
-        const textFloor = 220.0;
+        const textFloor = 300.0;
         final netW = math.min(280.0, math.max(96.0, maxW - textFloor));
         final cardW = math.min(maxW, textFloor + netW + 42);
         return Align(

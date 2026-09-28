@@ -34,6 +34,7 @@ class MainFlutterWindow: NSWindow, NSWindowDelegate {
 
     super.awakeFromNib()
     self.delegate = self
+    self.isRestorable = false
     self.title = "NeuraEC"
     // La finestra non ha una barra bianca sua: i pallini stanno sullo sfondo dell'app.
     self.titleVisibility = .hidden

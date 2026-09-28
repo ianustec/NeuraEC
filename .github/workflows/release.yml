@@ -171,19 +171,18 @@ jobs:
           set -euo pipefail
           win="dist/windows/NeuraEC-Windows.zip"
           lin="dist/linux/NeuraEC-Linux.tar.gz"
-          sig="dist/linux/NeuraEC-Linux.tar.gz.asc"
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" "$win" "$lin" "$sig" --clobber
+            gh release upload "$TAG" "$win" "$lin" --clobber
           else
             notes="Desktop builds of NeuraEC ${TAG}.
 
             - macOS (Apple Silicon): NeuraEC.dmg, signed by IANUSTEC and notarized by Apple.
             - Windows: NeuraEC-Windows.zip. Unzip and run neura_app.exe.
-            - Linux: NeuraEC-Linux.tar.gz. Unpack and run bundle/neura_app. The .asc file is the IANUSTEC signature.
+            - Linux: NeuraEC-Linux.tar.gz. Unpack and run bundle/neura_app.
 
             The engine and the language model are inside each download. Mail stays on your computer."
             gh release create "$TAG" \
               --title "NeuraEC $TAG" \
               --notes "$notes" \
-              "$win" "$lin" "$sig"
+              "$win" "$lin"
           fi

@@ -11,16 +11,20 @@ import 'mailbox_config.dart';
 import 'menubar.dart';
 import 'notify.dart';
 import 'release.dart';
+import 'updates.dart';
 
 void main() {
   runApp(const NeuraApp());
 }
 
 class NeuraApp extends StatefulWidget {
-  const NeuraApp({super.key, this.initialLocale});
+  const NeuraApp({super.key, this.initialLocale, this.checkUpdates = true});
 
   /// When set, the language stays in memory. Used by tests.
   final Locale? initialLocale;
+
+  /// Tests leave this off so the window does not call GitHub.
+  final bool checkUpdates;
 
   @override
   State<NeuraApp> createState() => _NeuraAppState();
@@ -70,16 +74,17 @@ class _NeuraAppState extends State<NeuraApp> {
           scaffoldBackgroundColor: const Color(0xFFF5F7FC),
           colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF00A8D4)),
         ),
-        home: NeuraHome(onLocale: _setLocale),
+        home: NeuraHome(onLocale: _setLocale, checkUpdates: widget.checkUpdates),
       ),
     );
   }
 }
 
 class NeuraHome extends StatefulWidget {
-  const NeuraHome({super.key, required this.onLocale});
+  const NeuraHome({super.key, required this.onLocale, this.checkUpdates = true});
 
   final ValueChanged<String> onLocale;
+  final bool checkUpdates;
 
   @override
   State<NeuraHome> createState() => _NeuraHomeState();
@@ -122,6 +127,9 @@ class _NeuraHomeState extends State<NeuraHome> {
   Timer? _timer;
   DateTime? _lastPredict;
   final DesktopNotifier _notifier = DesktopNotifier();
+  bool _updateDot = false;
+  bool _updateBusy = false;
+  bool _updateDialog = false;
 
   @override
   void didChangeDependencies() {
@@ -185,6 +193,120 @@ class _NeuraHomeState extends State<NeuraHome> {
       if (!allowed) {
         setState(() => _notifyOn = false);
         await _engine.saveNotificationsOn(false);
+      }
+    }
+    if (widget.checkUpdates) unawaited(_lookForUpdate(automatic: true));
+  }
+
+  Future<void> _lookForUpdate({required bool automatic}) async {
+    if (!widget.checkUpdates || _updateBusy) return;
+    _updateBusy = true;
+    try {
+      final store = UpdateStore(_engine.serviceFile);
+      final skipped = await store.skippedVersion();
+      if (automatic) {
+        final last = await store.lastChecked();
+        if (!shouldAutoCheck(last, DateTime.now())) {
+          if (skipped != null && isNewerVersion(skipped, kReleaseVersion) && mounted) {
+            setState(() => _updateDot = true);
+          }
+          return;
+        }
+      }
+      final AvailableUpdate? update;
+      try {
+        update = await fetchLatestRelease(current: kReleaseVersion, platform: currentPlatform());
+      } catch (_) {
+        return;
+      }
+      await store.rememberCheck(DateTime.now());
+      if (!mounted) return;
+      if (update == null) {
+        setState(() => _updateDot = false);
+        if (!automatic) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppText.of(context).updateCurrent)));
+        }
+        return;
+      }
+      setState(() => _updateDot = true);
+      if (automatic && !shouldPromptUpdate(update.version, skipped)) return;
+      await _proposeUpdate(update);
+    } finally {
+      _updateBusy = false;
+    }
+  }
+
+  Future<void> _proposeUpdate(AvailableUpdate update) async {
+    if (!mounted || _updateDialog) return;
+    _updateDialog = true;
+    final choice = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        final s = AppText.of(context);
+        return AlertDialog(
+          title: Text(s.updateTitle(update.version)),
+          content: Text(s.updateBody),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context, 'later'), child: Text(s.updateLater)),
+            FilledButton(onPressed: () => Navigator.pop(context, 'update'), child: Text(s.updateAction)),
+          ],
+        );
+      },
+    );
+    _updateDialog = false;
+    if (!mounted) return;
+    if (choice != 'update') {
+      await UpdateStore(_engine.serviceFile).rememberSkip(update.version);
+      if (mounted) setState(() => _updateDot = true);
+      return;
+    }
+    await _downloadUpdate(update);
+  }
+
+  Future<void> _downloadUpdate(AvailableUpdate update) async {
+    if (!mounted) return;
+    var cancelled = false;
+    var dialogOpen = true;
+    void Function(int received, int? total)? report;
+    final closed = showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return _DownloadDialog(
+          version: update.version,
+          attach: (next) => report = next,
+          onCancel: () {
+            cancelled = true;
+            if (!dialogOpen) return;
+            dialogOpen = false;
+            Navigator.pop(context);
+          },
+        );
+      },
+    );
+    void closeDialog() {
+      if (!mounted || !dialogOpen) return;
+      dialogOpen = false;
+      Navigator.pop(context);
+    }
+
+    try {
+      final file = await downloadRelease(
+        update,
+        downloadsDirectory(),
+        onProgress: (received, total) => report?.call(received, total),
+        isCancelled: () => cancelled,
+      );
+      closeDialog();
+      await closed;
+      if (!cancelled) await revealDownload(file);
+    } on DownloadCancelled {
+      await closed;
+    } catch (_) {
+      closeDialog();
+      await closed;
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppText.of(context).updateFailed)));
       }
     }
   }
@@ -721,34 +843,49 @@ class _NeuraHomeState extends State<NeuraHome> {
   Widget _releaseMark(S s) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 10),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 7),
-        decoration: BoxDecoration(
-          color: Colors.white,
+      child: Material(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
           borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          children: [
-            Text(
-              s.release.toUpperCase(),
-              style: const TextStyle(
-                color: Color(0xFF0099CC),
-                fontSize: 9,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 1.1,
-              ),
+          onTap: widget.checkUpdates && !_updateBusy ? () => _lookForUpdate(automatic: false) : null,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 7),
+            child: Column(
+              children: [
+                Text(
+                  s.release.toUpperCase(),
+                  style: const TextStyle(
+                    color: Color(0xFF0099CC),
+                    fontSize: 9,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.1,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      kReleaseVersion,
+                      style: const TextStyle(
+                        color: Color(0xFF12141A),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    if (_updateDot) ...[
+                      const SizedBox(width: 6),
+                      const DecoratedBox(
+                        decoration: BoxDecoration(color: Color(0xFF00D4FF), shape: BoxShape.circle),
+                        child: SizedBox(width: 8, height: 8),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
             ),
-            const SizedBox(height: 2),
-            Text(
-              kReleaseVersion,
-              style: const TextStyle(
-                color: Color(0xFF12141A),
-                fontSize: 12,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -1475,4 +1612,45 @@ class _NeuraHomeState extends State<NeuraHome> {
     ];
   }
 
+}
+
+class _DownloadDialog extends StatefulWidget {
+  const _DownloadDialog({required this.version, required this.attach, required this.onCancel});
+
+  final String version;
+  final void Function(void Function(int received, int? total) report) attach;
+  final VoidCallback onCancel;
+
+  @override
+  State<_DownloadDialog> createState() => _DownloadDialogState();
+}
+
+class _DownloadDialogState extends State<_DownloadDialog> {
+  int _received = 0;
+  int? _total;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.attach((received, total) {
+      if (!mounted) return;
+      setState(() {
+        _received = received;
+        _total = total;
+      });
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = AppText.of(context);
+    final known = _total != null && _total! > 0;
+    return AlertDialog(
+      title: Text(s.updateDownload(widget.version)),
+      content: LinearProgressIndicator(value: known ? _received / _total! : null),
+      actions: [
+        TextButton(onPressed: widget.onCancel, child: Text(s.cancel)),
+      ],
+    );
+  }
 }

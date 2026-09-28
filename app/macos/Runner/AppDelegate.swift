@@ -8,7 +8,21 @@ class AppDelegate: FlutterAppDelegate {
   }
 
   override func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool {
+    return false
+  }
+
+  /// Spotlight e il Dock riaprono un'app già in esecuzione. Se la finestra era
+  /// stata nascosta nella barra dei menu, va riportata davanti.
+  override func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+    MenuBarController.shared.show()
     return true
+  }
+
+  override func applicationDidFinishLaunching(_ notification: Notification) {
+    super.applicationDidFinishLaunching(notification)
+    DispatchQueue.main.async {
+      MenuBarController.shared.show()
+    }
   }
 }
 

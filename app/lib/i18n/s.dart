@@ -52,6 +52,13 @@ class S {
   String get navService => t('navService');
   String get language => t('language');
   String get release => t('release');
+  String updateTitle(String version) => t('updateTitle').replaceAll('{version}', version);
+  String get updateBody => t('updateBody');
+  String get updateAction => t('updateAction');
+  String get updateLater => t('updateLater');
+  String get updateCurrent => t('updateCurrent');
+  String updateDownload(String version) => t('updateDownload').replaceAll('{version}', version);
+  String get updateFailed => t('updateFailed');
   String get resetStats => t('resetStats');
   String get resetStatsTitle => t('resetStatsTitle');
   String get resetStatsBody => t('resetStatsBody');
@@ -394,6 +401,13 @@ const _it = {
   'openNeura': 'Apri NEURA',
   'quit': 'Esci',
   'open': 'Apri',
+  'updateTitle': 'È disponibile NeuraEC {version}',
+  'updateBody': 'Puoi scaricare la nuova versione. Il file si apre in Download e si installa come la prima volta.',
+  'updateAction': 'Aggiorna',
+  'updateLater': 'Più tardi',
+  'updateCurrent': 'NeuraEC è aggiornato.',
+  'updateDownload': 'Scarico NeuraEC {version}',
+  'updateFailed': 'Non riesco a scaricare l’aggiornamento.',
   'mailOne': 'email',
   'mailMany': 'email',
 };
@@ -566,6 +580,13 @@ const _en = {
   'openNeura': 'Open NEURA',
   'quit': 'Quit',
   'open': 'Open',
+  'updateTitle': 'NeuraEC {version} is available',
+  'updateBody': 'You can download the new version. The file opens in Downloads and installs the same way as the first time.',
+  'updateAction': 'Update',
+  'updateLater': 'Later',
+  'updateCurrent': 'NeuraEC is up to date.',
+  'updateDownload': 'Downloading NeuraEC {version}',
+  'updateFailed': 'The update could not be downloaded.',
   'mailOne': 'email',
   'mailMany': 'emails',
 };
@@ -738,6 +759,13 @@ const _fr = {
   'openNeura': 'Ouvrir NEURA',
   'quit': 'Quitter',
   'open': 'Ouvrir',
+  'updateTitle': 'NeuraEC {version} est disponible',
+  'updateBody': 'Vous pouvez télécharger la nouvelle version. Le fichier s’ouvre dans Téléchargements et s’installe comme la première fois.',
+  'updateAction': 'Mettre à jour',
+  'updateLater': 'Plus tard',
+  'updateCurrent': 'NeuraEC est à jour.',
+  'updateDownload': 'Téléchargement de NeuraEC {version}',
+  'updateFailed': 'Impossible de télécharger la mise à jour.',
   'mailOne': 'e-mail',
   'mailMany': 'e-mails',
 };
@@ -910,6 +938,13 @@ const _de = {
   'openNeura': 'NEURA öffnen',
   'quit': 'Beenden',
   'open': 'Öffnen',
+  'updateTitle': 'NeuraEC {version} ist verfügbar',
+  'updateBody': 'Du kannst die neue Version laden. Die Datei öffnet sich in Downloads und wird wie beim ersten Mal installiert.',
+  'updateAction': 'Aktualisieren',
+  'updateLater': 'Später',
+  'updateCurrent': 'NeuraEC ist aktuell.',
+  'updateDownload': 'NeuraEC {version} wird geladen',
+  'updateFailed': 'Die Aktualisierung konnte nicht geladen werden.',
   'mailOne': 'E-Mail',
   'mailMany': 'E-Mails',
 };
@@ -1082,6 +1117,13 @@ const _es = {
   'openNeura': 'Abrir NEURA',
   'quit': 'Salir',
   'open': 'Abrir',
+  'updateTitle': 'NeuraEC {version} está disponible',
+  'updateBody': 'Puedes descargar la nueva versión. El archivo se abre en Descargas y se instala como la primera vez.',
+  'updateAction': 'Actualizar',
+  'updateLater': 'Más tarde',
+  'updateCurrent': 'NeuraEC está actualizado.',
+  'updateDownload': 'Descargando NeuraEC {version}',
+  'updateFailed': 'No se puede descargar la actualización.',
   'mailOne': 'correo',
   'mailMany': 'correos',
 };

@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:neura_app/dashboard.dart';
 import 'package:neura_app/i18n/s.dart';
 import 'package:neura_app/main.dart';
+import 'package:neura_app/release.dart';
 import 'package:neura_app/neural_activity.dart';
 
 void main() {
   testWidgets('la prima pagina mostra il modello', (tester) async {
     await tester.binding.setSurfaceSize(const Size(1400, 1000));
-    await tester.pumpWidget(const NeuraApp(initialLocale: Locale('it')));
+    await tester.pumpWidget(const NeuraApp(initialLocale: Locale('it'), checkUpdates: false));
     await tester.pump();
     expect(find.text('NeuraEC'), findsWidgets);
     expect(find.text('Come decide'), findsOneWidget);
@@ -17,7 +19,7 @@ void main() {
     expect(find.text('15 min'), findsOneWidget);
     expect(find.text('Per tutte le caselle'), findsOneWidget);
     expect(find.text('RELEASE'), findsOneWidget);
-    expect(find.text('1.0.0'), findsOneWidget);
+    expect(find.text(kReleaseVersion), findsOneWidget);
     await tester.tap(find.text('Caselle'));
     await tester.pump();
     expect(find.text('Aggiungi casella'), findsOneWidget);
@@ -76,6 +78,28 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
+  testWidgets('la frase di lavoro sta nella card', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(900, 200));
+    await tester.pumpWidget(
+      AppText(
+        s: S('en'),
+        child: const MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 640,
+              height: 112,
+              child: NeuralActivity(caption: 'Classifying unread mail…', busy: true),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    final paragraph = tester.renderObject<RenderParagraph>(find.text('Classifying unread mail…'));
+    expect(paragraph.didExceedMaxLines, isFalse);
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('la rete sta dentro la card anche stretta', (tester) async {
     await tester.pumpWidget(
       AppText(
@@ -94,7 +118,7 @@ void main() {
 
   testWidgets('la lingua si cambia e la home segue', (tester) async {
     await tester.binding.setSurfaceSize(const Size(1400, 1000));
-    await tester.pumpWidget(const NeuraApp(initialLocale: Locale('en')));
+    await tester.pumpWidget(const NeuraApp(initialLocale: Locale('en'), checkUpdates: false));
     await tester.pump();
     expect(find.text('How it decides'), findsOneWidget);
     expect(find.text('Mailboxes'), findsOneWidget);
