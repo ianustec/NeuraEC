@@ -172,10 +172,24 @@ def _open_or_reject(args):
 
 
 def cmd_check(args) -> int:
-    opened = _open_or_reject(args)
-    if opened is None:
+    """Try the mailbox login without loading the language model."""
+    _say("connecting to the mailbox…")
+    try:
+        mailbox = load_mailbox_config(args.config)
+        adapter = _open_adapter(mailbox, args.adapter, config_path=Path(args.config))
+    except (SystemExit, Exception) as exc:
+        _say(f"login rejected: {exc}")
         return 1
-    mailbox, adapter, _clf = opened
+    try:
+        adapter.connect()
+    except Exception as exc:
+        _say(f"login rejected: {exc}")
+        try:
+            adapter.close()
+        except Exception:
+            pass
+        return 1
+    _say("login ok")
     try:
         labels = adapter.supports_labels()
     finally:

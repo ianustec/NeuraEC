@@ -44,6 +44,9 @@ void main() {
     expect(statusFromLine('connecting to the mailbox…', it), 'Connessione alla casella…');
     expect(statusFromLine('login ok', it), 'Accesso riuscito');
     expect(statusFromLine('login rejected: AUTH', it), 'Password rifiutata');
+    expect(loginFeedback('login ok', it), 'Accesso riuscito');
+    expect(loginFeedback('login rejected: AUTHENTICATIONFAILED', it), 'Password rifiutata');
+    expect(loginFeedback('login rejected: [Errno 8] nodename nor servname', it), 'Accesso non riuscito: [Errno 8] nodename nor servname');
     expect(statusFromLine('reading recipients of sent mail from the last 90 days', it), contains('90 giorni'));
     expect(statusFromLine('mailbox mb: classifying unread', it), 'Classifico le mail non lette…');
     expect(statusFromLine('login ok', S('en')), 'Signed in');

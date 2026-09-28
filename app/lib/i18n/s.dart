@@ -181,6 +181,7 @@ class S {
   String get ready => t('ready');
   String get interrupted => t('interrupted');
   String get loginOk => t('loginOk');
+  String loginFailed(String detail) => t('loginFailed').replaceAll('{detail}', detail);
   String get done => t('done');
   String get failed => t('failed');
   String get checking => t('checking');
@@ -355,6 +356,7 @@ const _it = {
   'ready': 'Pronto',
   'interrupted': 'Passaggio interrotto',
   'loginOk': 'Accesso riuscito',
+  'loginFailed': 'Accesso non riuscito: {detail}',
   'done': 'Fatto',
   'failed': 'Operazione non riuscita',
   'checking': 'Verifico utente e password…',
@@ -534,6 +536,7 @@ const _en = {
   'ready': 'Ready',
   'interrupted': 'Pass interrupted',
   'loginOk': 'Signed in',
+  'loginFailed': 'Could not sign in: {detail}',
   'done': 'Done',
   'failed': 'Something went wrong',
   'checking': 'Checking username and password…',
@@ -713,6 +716,7 @@ const _fr = {
   'ready': 'Prêt',
   'interrupted': 'Passage interrompu',
   'loginOk': 'Accès réussi',
+  'loginFailed': 'Accès impossible : {detail}',
   'done': 'Terminé',
   'failed': 'L’opération a échoué',
   'checking': 'Vérification de l’utilisateur et du mot de passe…',
@@ -892,6 +896,7 @@ const _de = {
   'ready': 'Bereit',
   'interrupted': 'Durchgang abgebrochen',
   'loginOk': 'Angemeldet',
+  'loginFailed': 'Anmeldung fehlgeschlagen: {detail}',
   'done': 'Fertig',
   'failed': 'Vorgang fehlgeschlagen',
   'checking': 'Benutzer und Passwort werden geprüft…',
@@ -1071,6 +1076,7 @@ const _es = {
   'ready': 'Listo',
   'interrupted': 'Paso interrumpido',
   'loginOk': 'Acceso correcto',
+  'loginFailed': 'No se pudo entrar: {detail}',
   'done': 'Hecho',
   'failed': 'La operación no salió',
   'checking': 'Compruebo usuario y contraseña…',

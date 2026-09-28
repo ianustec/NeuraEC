@@ -119,6 +119,9 @@ class _NeuraHomeState extends State<NeuraHome> {
   bool _notifyOn = true;
   int _everyMinutes = 5;
   String? _status;
+  String? _loginMessage;
+  bool? _loginOk;
+  bool _checkingLogin = false;
   String? _localeCode;
   final Set<String> _prepared = {};
   final List<String> _lines = [];
@@ -564,6 +567,11 @@ class _NeuraHomeState extends State<NeuraHome> {
       _failed = false;
       _status = _openingStatus(command);
       _log('— ${_openingStatus(command)}');
+      if (command == 'check') {
+        _checkingLogin = true;
+        _loginOk = null;
+        _loginMessage = AppText.of(context).checking;
+      }
     });
     final cycle = command == 'cycle';
     final saved = await _persistSelected(quiet: cycle);
@@ -572,6 +580,11 @@ class _NeuraHomeState extends State<NeuraHome> {
         setState(() {
           _busy = false;
           _pass = false;
+          if (command == 'check') {
+            _checkingLogin = false;
+            _loginOk = false;
+            _loginMessage = AppText.of(context).needHost;
+          }
         });
       }
       return;
@@ -583,10 +596,13 @@ class _NeuraHomeState extends State<NeuraHome> {
       password: cycle ? await _engine.loadPassword() : _password.text,
       onLine: (line) {
       if (!mounted || line.trim().isEmpty) return;
-      final status = statusFromLine(line, AppText.of(context));
+      final spoken = AppText.of(context);
+      final status = statusFromLine(line, spoken);
+      final login = command == 'check' ? loginFeedback(line, spoken) : null;
       setState(() {
         _log(line.trim());
         if (status != null) _status = status;
+        if (login != null) _loginMessage = login;
         if (lineIsFailure(line)) _failed = true;
       });
     });
@@ -604,7 +620,26 @@ class _NeuraHomeState extends State<NeuraHome> {
         _status = s.failed;
       }
       if (command == 'predict' || command == 'cycle') _lastPredict = DateTime.now();
+      if (command == 'check') {
+        _checkingLogin = false;
+        if (_halted) {
+          _loginOk = false;
+          _loginMessage = s.interrupted;
+        } else if (result.ok && !_failed) {
+          _loginOk = true;
+          _loginMessage = s.loginOk;
+        } else {
+          _loginOk = false;
+          if (_loginMessage == null || _loginMessage == s.checking) {
+            final err = result.stderrText.trim();
+            _loginMessage = err.isEmpty ? s.failed : err.split('\n').first;
+          }
+        }
+      }
     });
+    if (command == 'check' && mounted && _loginMessage != null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_loginMessage!)));
+    }
     if (command != 'check') await _refreshStats();
     if (command == 'predict' || command == 'cycle') await _announce();
     if (command == 'init' && result.ok) {
@@ -993,7 +1028,21 @@ class _NeuraHomeState extends State<NeuraHome> {
                       decoration: _field(s.otherAddresses, s.otherAddressesHint),
                     ),
                     const SizedBox(height: 16),
-                    _serviceButton(s.tryLogin, () => _run('check'), filled: false),
+                    _serviceButton(s.tryLogin, () => _run('check'), filled: false, waiting: _checkingLogin ? s.checking : null),
+                    if (_loginMessage != null) ...[
+                      const SizedBox(height: 10),
+                      Text(
+                        _loginMessage!,
+                        style: TextStyle(
+                          color: _loginOk == true
+                              ? const Color(0xFF0B7A45)
+                              : _loginOk == false
+                                  ? const Color(0xFFC62828)
+                                  : const Color(0xFF5C6478),
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -1053,7 +1102,7 @@ class _NeuraHomeState extends State<NeuraHome> {
                       spacing: 8,
                       runSpacing: 8,
                       children: [
-                        for (var n = 3; n <= 10; n++)
+                        for (var n = 2; n <= 10; n++)
                           _choice('$n', _n == n, () => setState(() => _n = n)),
                       ],
                     ),
@@ -1419,8 +1468,23 @@ class _NeuraHomeState extends State<NeuraHome> {
     );
   }
 
-  Widget _serviceButton(String label, VoidCallback onPressed, {bool filled = false}) {
+  Widget _serviceButton(String label, VoidCallback onPressed, {bool filled = false, String? waiting}) {
     final shape = RoundedRectangleBorder(borderRadius: BorderRadius.circular(14));
+    final spinning = _busy && waiting != null;
+    final child = spinning
+        ? Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+              const SizedBox(width: 10),
+              Text(waiting),
+            ],
+          )
+        : Text(label);
     if (filled) {
       return FilledButton(
         onPressed: _busy ? null : onPressed,
@@ -1430,7 +1494,7 @@ class _NeuraHomeState extends State<NeuraHome> {
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
           shape: shape,
         ),
-        child: Text(label),
+        child: child,
       );
     }
     return FilledButton.tonal(
@@ -1439,7 +1503,7 @@ class _NeuraHomeState extends State<NeuraHome> {
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
         shape: shape,
       ),
-      child: Text(label),
+      child: child,
     );
   }
 

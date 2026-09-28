@@ -248,6 +248,21 @@ String _inferPrefix(Object? labels) {
   return leaf.substring(0, digits.start);
 }
 
+/// What to show under "Test login": success, a rejected password, or the reason.
+String? loginFeedback(String line, S s) {
+  final text = line.trim();
+  final lower = text.toLowerCase();
+  if (lower.contains('login ok')) return s.loginOk;
+  if (lower.contains('connecting')) return s.checking;
+  if (lower.contains('password missing') || lower.contains('neura_imap_password')) return s.passwordMissing;
+  if (!lower.contains('login rejected')) return statusFromLine(line, s);
+  final detail = text.contains(':') ? text.substring(text.indexOf(':') + 1).trim() : '';
+  const auth = ['auth', 'password', 'credential', 'login failed', 'invalid', 'authenticationfailed'];
+  if (detail.isEmpty || auth.any(lower.contains)) return s.passwordRejected;
+  final short = detail.length > 180 ? '${detail.substring(0, 180)}…' : detail;
+  return s.loginFailed(short);
+}
+
 /// Turns an engine line into a sentence to show immediately.
 String? statusFromLine(String line, S s) {
   final text = line.trim().toLowerCase();
