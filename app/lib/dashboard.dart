@@ -367,9 +367,12 @@ class _NeuraDashboardState extends State<NeuraDashboard> with SingleTickerProvid
 
   Widget _header(BuildContext context) {
     final s = AppText.of(context);
-    final chips = widget.mailboxes.length > 1
-        ? Padding(padding: const EdgeInsets.only(top: 14), child: _tabs())
-        : const SizedBox.shrink();
+    final chips = widget.mailboxes.length <= 1
+        ? const SizedBox.shrink()
+        : Padding(
+            padding: const EdgeInsets.only(top: 10),
+            child: widget.mailboxes.length > 2 ? _mailboxMenu() : _tabs(),
+          );
     final showNet = widget.serviceOn || widget.live;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -530,6 +533,48 @@ class _NeuraDashboardState extends State<NeuraDashboard> with SingleTickerProvid
         padding: EdgeInsets.zero,
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         shape: const CircleBorder(),
+      ),
+    );
+  }
+
+  Widget _mailboxMenu() {
+    final selected = widget.mailboxes[widget.selected.clamp(0, widget.mailboxes.length - 1)];
+    return PopupMenuButton<int>(
+      enabled: !widget.busy,
+      tooltip: AppText.of(context).navMailboxes,
+      onSelected: widget.onSelect,
+      itemBuilder: (context) => [
+        for (var i = 0; i < widget.mailboxes.length; i++)
+          PopupMenuItem(
+            value: i,
+            child: Text(
+              widget.mailboxes[i],
+              style: TextStyle(fontWeight: i == widget.selected ? FontWeight.w800 : FontWeight.w500),
+            ),
+          ),
+      ],
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(16, 10, 12, 10),
+        decoration: BoxDecoration(
+          color: const Color(0xFF12141A),
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 280),
+              child: Text(
+                selected,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontWeight: FontWeight.w700, color: Colors.white),
+              ),
+            ),
+            const SizedBox(width: 6),
+            const Icon(Icons.expand_more, color: Colors.white, size: 18),
+          ],
+        ),
       ),
     );
   }

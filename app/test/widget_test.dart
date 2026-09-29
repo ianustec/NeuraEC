@@ -62,6 +62,44 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
+  testWidgets('con più di due caselle compare il menu', (tester) async {
+    var chosen = 0;
+    await tester.pumpWidget(
+      AppText(
+        s: S('it'),
+        child: MaterialApp(
+          home: Scaffold(
+            body: NeuraDashboard(
+              stats: null,
+              mailboxes: const ['a@b.it', 'c@d.it', 'e@f.it'],
+              selected: 0,
+              onSelect: (index) => chosen = index,
+              order: 'asc',
+              n: 4,
+              prefix: 'BeC-P',
+              busy: false,
+              loading: false,
+              serviceOn: false,
+              onRefresh: () {},
+              onClassify: () {},
+              onToggleService: () {},
+              onStop: () {},
+            ),
+          ),
+        ),
+      ),
+    );
+    expect(find.text('a@b.it'), findsOneWidget);
+    expect(find.text('c@d.it'), findsNothing);
+    expect(find.byIcon(Icons.expand_more), findsOneWidget);
+    await tester.tap(find.byIcon(Icons.expand_more));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.tap(find.text('e@f.it'));
+    expect(chosen, 2);
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('durante il lavoro compare la rete con la frase in corso', (tester) async {
     await tester.pumpWidget(
       AppText(
