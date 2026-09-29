@@ -40,11 +40,20 @@ static void my_application_activate(GApplication* application) {
   if (use_header_bar) {
     GtkHeaderBar* header_bar = GTK_HEADER_BAR(gtk_header_bar_new());
     gtk_widget_show(GTK_WIDGET(header_bar));
-    gtk_header_bar_set_title(header_bar, "neura_app");
+    gtk_header_bar_set_title(header_bar, "NeuraEC");
     gtk_header_bar_set_show_close_button(header_bar, TRUE);
     gtk_window_set_titlebar(window, GTK_WIDGET(header_bar));
   } else {
-    gtk_window_set_title(window, "neura_app");
+    gtk_window_set_title(window, "NeuraEC");
+  }
+
+  g_autofree gchar* exe_path = g_file_read_link("/proc/self/exe", nullptr);
+  if (exe_path != nullptr) {
+    g_autofree gchar* exe_dir = g_path_get_dirname(exe_path);
+    g_autofree gchar* icon_path = g_build_filename(
+        exe_dir, "data", "flutter_assets", "assets", "neuraec_icon_v2.png", nullptr);
+    gtk_window_set_default_icon_from_file(icon_path, nullptr);
+    gtk_window_set_icon_from_file(window, icon_path, nullptr);
   }
 
   gtk_window_set_default_size(window, 1280, 720);

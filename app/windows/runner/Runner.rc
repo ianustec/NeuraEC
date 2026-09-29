@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "it.bentho" "\0"
-            VALUE "FileDescription", "neura_app" "\0"
+            VALUE "CompanyName", "IANUSTEC s.r.l." "\0"
+            VALUE "FileDescription", "NeuraEC" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "neura_app" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 it.bentho. All rights reserved." "\0"
+            VALUE "InternalName", "NeuraEC" "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 IANUSTEC s.r.l. All rights reserved." "\0"
             VALUE "OriginalFilename", "neura_app.exe" "\0"
-            VALUE "ProductName", "neura_app" "\0"
+            VALUE "ProductName", "NeuraEC" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

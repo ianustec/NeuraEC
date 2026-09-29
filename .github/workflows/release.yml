@@ -101,7 +101,14 @@ jobs:
           foreach ($exe in @("$release\neura_app.exe", "$release\engine\neura-engine.exe")) {
             & $signtool sign /f $pfx /p $env:NEURA_WIN_PFX_PASSWORD /fd SHA256 /d "NeuraEC" $exe
           }
-          Compress-Archive -Path "$release/*" -DestinationPath "../NeuraEC-Windows.zip"
+          if (-not (Test-Path "$release\flutter_windows.dll")) { throw "flutter_windows.dll is missing from the Windows build" }
+          if (-not (Test-Path "$release\data\icudtl.dat")) { throw "the Flutter data folder is missing from the Windows build" }
+          $stageParent = Join-Path $env:RUNNER_TEMP "neura-win"
+          $stage = Join-Path $stageParent "NeuraEC"
+          if (Test-Path $stageParent) { Remove-Item -Recurse -Force $stageParent }
+          New-Item -ItemType Directory -Path $stage | Out-Null
+          Copy-Item -Path "$release\*" -Destination $stage -Recurse
+          tar.exe -a -c -f "$PWD\..\NeuraEC-Windows.zip" -C $stageParent NeuraEC
       - uses: actions/upload-artifact@v4
         with:
           name: windows
@@ -177,7 +184,7 @@ jobs:
             notes="Desktop builds of NeuraEC ${TAG}.
 
             - macOS (Apple Silicon): NeuraEC.dmg, signed by IANUSTEC and notarized by Apple.
-            - Windows: NeuraEC-Windows.zip. Unzip and run neura_app.exe.
+            - Windows: NeuraEC-Windows.zip. Unzip the NeuraEC folder and run neura_app.exe inside it. Do not move the exe out of that folder.
             - Linux: NeuraEC-Linux.tar.gz. Unpack and run bundle/neura_app.
 
             The engine and the language model are inside each download. Mail stays on your computer."
