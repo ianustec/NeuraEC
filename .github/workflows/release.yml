@@ -3,8 +3,9 @@ name: Release
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
   workflow_dispatch:
+
 
 permissions:
   contents: write
@@ -19,11 +20,11 @@ jobs:
     outputs:
       tag: ${{ steps.tag.outputs.tag }}
     steps:
-      - uses: actions/checkout@v4
-      - id: tag
-        run: |
-          version=$(awk '/^version:/ { print $2 }' app/pubspec.yaml | cut -d+ -f1)
-          echo "tag=v${version}" >> "$GITHUB_OUTPUT"
+    - uses: actions/checkout@v4
+    - id: tag
+      run: |
+        version=$(awk '/^version:/ { print $2 }' app/pubspec.yaml | cut -d+ -f1)
+        echo "tag=v${version}" >> "$GITHUB_OUTPUT"
 
   macos:
     # The notarized disk image is built on the IANUSTEC Mac. A push to main does not replace it.
@@ -32,164 +33,165 @@ jobs:
     runs-on: macos-14
     timeout-minutes: 90
     steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          cache: true
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - name: Freeze the engine and build the disk image
-        env:
-          NEURA_SIGN_IDENTITY: ${{ secrets.NEURA_SIGN_IDENTITY }}
-          NEURA_NOTARY_PROFILE: ${{ secrets.NEURA_NOTARY_PROFILE }}
-        run: |
-          set -euo pipefail
-          cd engine
-          python3 -m venv .venv
-          .venv/bin/python -m pip install -U pip
-          .venv/bin/python -m pip install -e ".[encoder,gmail,graph]" pyinstaller
-          cd ..
-          app/tool/build_mac.sh
-      - uses: actions/upload-artifact@v4
-        with:
-          name: macos
-          path: app/dist/NeuraEC.dmg
-          if-no-files-found: error
+    - uses: actions/checkout@v4
+    - uses: subosito/flutter-action@v2
+      with:
+        channel: stable
+        cache: true
+    - uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+    - name: Freeze the engine and build the disk image
+      env:
+        NEURA_SIGN_IDENTITY: ${{ secrets.NEURA_SIGN_IDENTITY }}
+        NEURA_NOTARY_PROFILE: ${{ secrets.NEURA_NOTARY_PROFILE }}
+      run: |
+        set -euo pipefail
+        cd engine
+        python3 -m venv .venv
+        .venv/bin/python -m pip install -U pip
+        .venv/bin/python -m pip install -e ".[encoder,gmail,graph]" pyinstaller
+        cd ..
+        app/tool/build_mac.sh
+    - uses: actions/upload-artifact@v4
+      with:
+        name: macos
+        path: app/dist/NeuraEC.dmg
+        if-no-files-found: error
 
   windows:
     needs: version
     runs-on: windows-latest
     timeout-minutes: 90
     steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          cache: true
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - name: Freeze the engine
-        shell: pwsh
+    - uses: actions/checkout@v4
+    - uses: subosito/flutter-action@v2
+      with:
+        channel: stable
+        cache: true
+    - uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+    - name: Freeze the engine
+      shell: pwsh
+      run: |
+        Set-Location engine
+        python -m venv .venv
+        .\.venv\Scripts\python -m pip install -U pip
+        .\.venv\Scripts\python -m pip install -e ".[encoder,gmail,graph]" pyinstaller
+        .\.venv\Scripts\python -m pip install torch --index-url https://download.pytorch.org/whl/cpu --upgrade
+        .\.venv\Scripts\python packaging/export_model.py dist/model
+        .\.venv\Scripts\pyinstaller --noconfirm --workpath build/pyinstaller --distpath dist packaging/neura-engine.spec
+    - name: Build the window and pack it
+      shell: pwsh
+      env:
+        NEURA_WIN_PFX: ${{ secrets.NEURA_WIN_PFX }}
+        NEURA_WIN_PFX_PASSWORD: ${{ secrets.NEURA_WIN_PFX_PASSWORD }}
         run: |
-          Set-Location engine
-          python -m venv .venv
-          .\.venv\Scripts\python -m pip install -U pip
-          .\.venv\Scripts\python -m pip install -e ".[encoder,gmail,graph]" pyinstaller
-          .\.venv\Scripts\python -m pip install torch --index-url https://download.pytorch.org/whl/cpu --upgrade
-          .\.venv\Scripts\python packaging/export_model.py dist/model
-          .\.venv\Scripts\pyinstaller --noconfirm --workpath build/pyinstaller --distpath dist packaging/neura-engine.spec
-      - name: Build the window and pack it
-        shell: pwsh
-        env:
-          NEURA_WIN_PFX: ${{ secrets.NEURA_WIN_PFX }}
-          NEURA_WIN_PFX_PASSWORD: ${{ secrets.NEURA_WIN_PFX_PASSWORD }}
-        run: |
+          $ErrorActionPreference = 'Stop'
           Set-Location app
           flutter build windows --release
-          $release = "build/windows/x64/runner/Release"
-          Copy-Item -Recurse "../engine/dist/neura-engine" "$release/engine"
-          Copy-Item -Recurse "../engine/dist/model" "$release/model"
-          $pfx = "$env:RUNNER_TEMP\ianustec.pfx"
-          [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:NEURA_WIN_PFX))
-          $signtool = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin" -Recurse -Filter signtool.exe |
-            Where-Object { $_.FullName -match '\\x64\\' } |
-            Sort-Object FullName -Descending |
-            Select-Object -First 1 -ExpandProperty FullName
-          foreach ($exe in @("$release\neura_app.exe", "$release\engine\neura-engine.exe")) {
-            & $signtool sign /f $pfx /p $env:NEURA_WIN_PFX_PASSWORD /fd SHA256 /d "NeuraEC" $exe
-          }
-          if (-not (Test-Path "$release\flutter_windows.dll")) { throw "flutter_windows.dll is missing from the Windows build" }
-          if (-not (Test-Path "$release\data\icudtl.dat")) { throw "the Flutter data folder is missing from the Windows build" }
-          $stageParent = Join-Path $env:RUNNER_TEMP "neura-win"
-          $stage = Join-Path $stageParent "NeuraEC"
-          if (Test-Path $stageParent) { Remove-Item -Recurse -Force $stageParent }
-          New-Item -ItemType Directory -Path $stage | Out-Null
-          Copy-Item -Path "$release\*" -Destination $stage -Recurse
-          tar.exe -a -c -f "$PWD\..\NeuraEC-Windows.zip" -C $stageParent NeuraEC
-      - uses: actions/upload-artifact@v4
-        with:
-          name: windows
-          path: NeuraEC-Windows.zip
-          if-no-files-found: error
+        $release = "build/windows/x64/runner/Release"
+        Copy-Item -Recurse "../engine/dist/neura-engine" "$release/engine"
+        Copy-Item -Recurse "../engine/dist/model" "$release/model"
+        $pfx = "$env:RUNNER_TEMP\ianustec.pfx"
+        [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:NEURA_WIN_PFX))
+        $signtool = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin" -Recurse -Filter signtool.exe |
+          Where-Object { $_.FullName -match '\\x64\\' } |
+          Sort-Object FullName -Descending |
+          Select-Object -First 1 -ExpandProperty FullName
+        foreach ($exe in @("$release\neura_app.exe", "$release\engine\neura-engine.exe")) {
+          & $signtool sign /f $pfx /p $env:NEURA_WIN_PFX_PASSWORD /fd SHA256 /d "NeuraEC" $exe
+        }
+        if (-not (Test-Path "$release\flutter_windows.dll")) { throw "flutter_windows.dll is missing from the Windows build" }
+        if (-not (Test-Path "$release\data\icudtl.dat")) { throw "the Flutter data folder is missing from the Windows build" }
+        $stageParent = Join-Path $env:RUNNER_TEMP "neura-win"
+        $stage = Join-Path $stageParent "NeuraEC"
+        if (Test-Path $stageParent) { Remove-Item -Recurse -Force $stageParent }
+        New-Item -ItemType Directory -Path $stage | Out-Null
+        Copy-Item -Path "$release\*" -Destination $stage -Recurse
+        tar.exe -a -c -f "$PWD\..\NeuraEC-Windows.zip" -C $stageParent NeuraEC
+    - uses: actions/upload-artifact@v4
+      with:
+        name: windows
+        path: NeuraEC-Windows.zip
+        if-no-files-found: error
 
   linux:
     needs: version
     runs-on: ubuntu-22.04
     timeout-minutes: 90
     steps:
-      - uses: actions/checkout@v4
-      - name: Linux libraries for the window
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          cache: true
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - name: Freeze the engine and pack the window
-        env:
-          NEURA_GPG_PRIVATE: ${{ secrets.NEURA_GPG_PRIVATE }}
-          NEURA_GPG_PASSPHRASE: ${{ secrets.NEURA_GPG_PASSPHRASE }}
-        run: |
-          set -euo pipefail
-          cd engine
-          python3 -m venv .venv
-          .venv/bin/python -m pip install -U pip
-          .venv/bin/python -m pip install -e ".[encoder,gmail,graph]" pyinstaller
-          .venv/bin/python -m pip install torch --index-url https://download.pytorch.org/whl/cpu --upgrade
-          .venv/bin/python packaging/export_model.py dist/model
-          .venv/bin/pyinstaller --noconfirm --workpath build/pyinstaller --distpath dist packaging/neura-engine.spec
-          cd ../app
-          flutter build linux --release
-          bundle="build/linux/x64/release/bundle"
-          cp -a ../engine/dist/neura-engine "$bundle/engine"
-          cp -a ../engine/dist/model "$bundle/model"
-          tar -C build/linux/x64/release -czf "$GITHUB_WORKSPACE/NeuraEC-Linux.tar.gz" bundle
-          gpg --batch --import <<< "$NEURA_GPG_PRIVATE"
-          gpg --batch --pinentry-mode loopback --passphrase "$NEURA_GPG_PASSPHRASE" \
-            --detach-sign --armor "$GITHUB_WORKSPACE/NeuraEC-Linux.tar.gz"
-      - uses: actions/upload-artifact@v4
-        with:
-          name: linux
-          path: |
-            NeuraEC-Linux.tar.gz
-            NeuraEC-Linux.tar.gz.asc
-          if-no-files-found: error
+    - uses: actions/checkout@v4
+    - name: Linux libraries for the window
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev
+    - uses: subosito/flutter-action@v2
+      with:
+        channel: stable
+        cache: true
+    - uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+    - name: Freeze the engine and pack the window
+      env:
+        NEURA_GPG_PRIVATE: ${{ secrets.NEURA_GPG_PRIVATE }}
+        NEURA_GPG_PASSPHRASE: ${{ secrets.NEURA_GPG_PASSPHRASE }}
+      run: |
+        set -euo pipefail
+        cd engine
+        python3 -m venv .venv
+        .venv/bin/python -m pip install -U pip
+        .venv/bin/python -m pip install -e ".[encoder,gmail,graph]" pyinstaller
+        .venv/bin/python -m pip install torch --index-url https://download.pytorch.org/whl/cpu --upgrade
+        .venv/bin/python packaging/export_model.py dist/model
+        .venv/bin/pyinstaller --noconfirm --workpath build/pyinstaller --distpath dist packaging/neura-engine.spec
+        cd ../app
+        flutter build linux --release
+        bundle="build/linux/x64/release/bundle"
+        cp -a ../engine/dist/neura-engine "$bundle/engine"
+        cp -a ../engine/dist/model "$bundle/model"
+        tar -C build/linux/x64/release -czf "$GITHUB_WORKSPACE/NeuraEC-Linux.tar.gz" bundle
+        gpg --batch --import <<< "$NEURA_GPG_PRIVATE"
+        gpg --batch --pinentry-mode loopback --passphrase "$NEURA_GPG_PASSPHRASE" \
+          --detach-sign --armor "$GITHUB_WORKSPACE/NeuraEC-Linux.tar.gz"
+    - uses: actions/upload-artifact@v4
+      with:
+        name: linux
+        path: |
+          NeuraEC-Linux.tar.gz
+          NeuraEC-Linux.tar.gz.asc
+        if-no-files-found: error
 
   publish:
-    needs: [version, windows, linux]
+    needs: [ version, windows, linux ]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v4
-        with:
-          path: dist
-      - name: Publish the release
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-          TAG: ${{ needs.version.outputs.tag }}
-        run: |
-          set -euo pipefail
-          win="dist/windows/NeuraEC-Windows.zip"
-          lin="dist/linux/NeuraEC-Linux.tar.gz"
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" "$win" "$lin" --clobber
-          else
-            notes="Desktop builds of NeuraEC ${TAG}.
+    - uses: actions/download-artifact@v4
+      with:
+        path: dist
+    - name: Publish the release
+      env:
+        GH_TOKEN: ${{ github.token }}
+        GH_REPO: ${{ github.repository }}
+        TAG: ${{ needs.version.outputs.tag }}
+      run: |
+        set -euo pipefail
+        win="dist/windows/NeuraEC-Windows.zip"
+        lin="dist/linux/NeuraEC-Linux.tar.gz"
+        if gh release view "$TAG" >/dev/null 2>&1; then
+          gh release upload "$TAG" "$win" "$lin" --clobber
+        else
+          notes="Desktop builds of NeuraEC ${TAG}.
 
-            - macOS (Apple Silicon): NeuraEC.dmg, signed by IANUSTEC and notarized by Apple.
-            - Windows: NeuraEC-Windows.zip. Unzip the NeuraEC folder and run neura_app.exe inside it. Do not move the exe out of that folder.
-            - Linux: NeuraEC-Linux.tar.gz. Unpack and run bundle/neura_app.
+          - macOS (Apple Silicon): NeuraEC.dmg, signed by IANUSTEC and notarized by Apple.
+          - Windows: NeuraEC-Windows.zip. Unzip the NeuraEC folder and run neura_app.exe inside it. Do not move the exe out of that folder.
+          - Linux: NeuraEC-Linux.tar.gz. Unpack and run bundle/neura_app.
 
-            The engine and the language model are inside each download. Mail stays on your computer."
-            gh release create "$TAG" \
-              --title "NeuraEC $TAG" \
-              --notes "$notes" \
-              "$win" "$lin"
-          fi
+          The engine and the language model are inside each download. Mail stays on your computer."
+          gh release create "$TAG" \
+            --title "NeuraEC $TAG" \
+            --notes "$notes" \
+            "$win" "$lin"
+        fi
