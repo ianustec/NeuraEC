@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'brand.dart';
 import 'dashboard.dart';
@@ -1451,6 +1452,11 @@ class _NeuraHomeState extends State<NeuraHome> {
                         child: Text(s.log, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Color(0xFF12141A))),
                       ),
                       TextButton(
+                        onPressed: _lines.isEmpty ? null : _copyLog,
+                        style: TextButton.styleFrom(foregroundColor: const Color(0xFF5C6478)),
+                        child: Text(s.copyLog),
+                      ),
+                      TextButton(
                         onPressed: _lines.isEmpty ? null : () => setState(_lines.clear),
                         style: TextButton.styleFrom(foregroundColor: const Color(0xFF5C6478)),
                         child: Text(s.clear),
@@ -1516,27 +1522,30 @@ class _NeuraHomeState extends State<NeuraHome> {
         ),
       );
     }
-    return ListView.builder(
+    return SingleChildScrollView(
       controller: _logScroll,
-      itemCount: _lines.length,
-      itemBuilder: (context, index) {
-        final line = _lines[index];
-        final marker = line.contains('— ');
-        return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 3),
-          child: Text(
-            line,
-            style: TextStyle(
-              fontFamily: 'Menlo',
-              fontSize: 13,
-              height: 1.35,
-              fontWeight: marker ? FontWeight.w700 : FontWeight.w400,
-              color: marker ? const Color(0xFF12141A) : const Color(0xFF3A4154),
-            ),
-          ),
-        );
-      },
+      child: SelectableText.rich(
+        TextSpan(
+          children: [
+            for (var i = 0; i < _lines.length; i++)
+              TextSpan(
+                text: i == _lines.length - 1 ? _lines[i] : '${_lines[i]}\n',
+                style: TextStyle(
+                  fontWeight: _lines[i].contains('— ') ? FontWeight.w700 : FontWeight.w400,
+                  color: _lines[i].contains('— ') ? const Color(0xFF12141A) : const Color(0xFF3A4154),
+                ),
+              ),
+          ],
+        ),
+        style: const TextStyle(fontFamily: 'Menlo', fontSize: 13, height: 1.35),
+      ),
     );
+  }
+
+  Future<void> _copyLog() async {
+    await Clipboard.setData(ClipboardData(text: _lines.join('\n')));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppText.of(context).logCopied)));
   }
 
   Widget _oauthGuide() {
@@ -1561,8 +1570,8 @@ class _NeuraHomeState extends State<NeuraHome> {
             gmail ? s.gmailOnce : s.microsoftOnce,
             style: const TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF12141A)),
           ),
-          const SizedBox(height: 8),
-          Text(_oauthSteps(), style: const TextStyle(color: Color(0xFF12141A), height: 1.4)),
+          const SizedBox(height: 4),
+          if (gmail) _gmailAccordion(s) else Text(_oauthSteps(), style: const TextStyle(color: Color(0xFF12141A), height: 1.4)),
           const SizedBox(height: 12),
           if (gmail) ...[
             TextField(controller: _gmailId, decoration: _field(s.googleClientId)),
@@ -1603,6 +1612,39 @@ class _NeuraHomeState extends State<NeuraHome> {
   String _oauthSteps() {
     final s = AppText.of(context);
     return _provider == 'gmail' ? s.gmailSteps : s.microsoftSteps;
+  }
+
+  Widget _gmailAccordion(S s) {
+    return Theme(
+      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+      child: ExpansionTile(
+        tilePadding: EdgeInsets.zero,
+        childrenPadding: const EdgeInsets.only(bottom: 4),
+        title: Text(
+          s.gmailGuide,
+          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: Color(0xFF12141A)),
+        ),
+        children: [
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(s.gmailSteps, style: const TextStyle(color: Color(0xFF12141A), height: 1.45)),
+          ),
+          const SizedBox(height: 10),
+          const Align(
+            alignment: Alignment.centerLeft,
+            child: SelectableText(
+              'https://www.googleapis.com/auth/gmail.modify',
+              style: TextStyle(fontFamily: 'Menlo', fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF12141A)),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(s.gmailScopeNote, style: const TextStyle(color: Color(0xFF12141A), height: 1.45)),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _saveOAuth() async {

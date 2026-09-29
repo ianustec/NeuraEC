@@ -479,7 +479,7 @@ def test_predict_unseen_skips_mail_already_labelled_in_inbox(tmp_path, encoder):
     other.folder = mb.label_for_rank(0)
     other.is_seen = False
     box = FakeAdapter([other])
-    box.fetch_unseen = lambda: [other]  # type: ignore[method-assign]
+    box.fetch_unseen = lambda **_kwargs: [other]  # type: ignore[method-assign]
     assert predict_unseen(mb, box, clf) == []
 
 

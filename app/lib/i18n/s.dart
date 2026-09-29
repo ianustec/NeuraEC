@@ -211,11 +211,15 @@ class S {
   String get serviceSubtitle => t('serviceSubtitle');
   String get log => t('log');
   String get clear => t('clear');
+  String get copyLog => t('copyLog');
+  String get logCopied => t('logCopied');
   String get logEmpty => t('logEmpty');
 
   String get gmailOnce => t('gmailOnce');
   String get microsoftOnce => t('microsoftOnce');
   String get gmailSteps => t('gmailSteps');
+  String get gmailGuide => t('gmailGuide');
+  String get gmailScopeNote => t('gmailScopeNote');
   String get microsoftSteps => t('microsoftSteps');
   String get googleClientId => t('googleClientId');
   String get googleSecret => t('googleSecret');
@@ -384,10 +388,14 @@ const _it = {
   'serviceSubtitle': 'Tutto quello che succede, dal primo passaggio all’ultimo.',
   'log': 'Registro',
   'clear': 'Pulisci',
+  'copyLog': 'Copia',
+  'logCopied': 'Registro copiato.',
   'logEmpty': 'Qui compare tutto: classificazione, spostamenti imparati, avvisi, collegamenti.',
   'gmailOnce': 'Collegamento Gmail, una volta sola',
   'microsoftOnce': 'Collegamento Microsoft, una volta sola',
-  'gmailSteps': 'In Google Cloud Console crea un progetto, abilita Gmail API e crea una credenziale di tipo Applicazione desktop. Incolla qui ID e segreto. Nella schermata di consenso premi Pubblica app: non mandarla in verifica. Al primo accesso Google dice che l’app non è verificata: Avanzate, poi vai all’app. Così il collegamento non scade dopo 7 giorni. La verifica serve solo se l’app deve accettare chiunque, non per il tuo uso. Non lasciarla in Test: lì il token muore dopo una settimana.',
+  'gmailSteps': '1. In Google Cloud Console crea un progetto.\n2. API e servizi, Libreria: abilita Gmail API.\n3. API e servizi, Schermata di consenso OAuth. Utente esterno. Metti il nome dell’app e la tua email.\n4. Accesso ai dati, Aggiungi o rimuovi ambiti. Nella sezione Gmail API spunta solo l’ambito qui sotto. Se non lo vedi, incollalo nel campo per aggiungerlo a mano.\n5. Credenziali, Crea credenziali, ID client OAuth, tipo Applicazione desktop. Copia qui ID client e segreto.\n6. Lascia l’app in Test. Con questo ambito Google non fa pubblicare per tutti: serve la verifica e un controllo di sicurezza. In Pubblico, Utenti di test, aggiungi l’indirizzo Gmail che deve entrare. Solo quelli passano, fino a 100. Se manca, Google risponde 403 access_denied.\n7. Il token di un utente di test scade dopo 7 giorni: si ricollega. Al primo accesso Google dice che l’app non è verificata: Avanzate, poi vai all’app.',
+  'gmailGuide': 'Passaggi e ambiti da spuntare',
+  'gmailScopeNote': 'In console si chiama «Read, compose, and send emails from your Gmail account» (la traduzione può cambiare). NeuraEC non invia posta: questo ambito serve per leggere i messaggi, creare le etichette e spostarle. Non spuntare anche gmail.readonly, gmail.send, gmail.compose, gmail.labels o gmail.metadata.',
   'microsoftSteps': 'Nel portale Azure, Microsoft Entra ID, registra un’app per account personali e aziendali. È un client pubblico: niente segreto. Come reindirizzamento metti http://127.0.0.1:8766. Autorizzazioni delegate: Mail.ReadWrite, MailboxSettings.ReadWrite, offline_access, User.Read. Incolla qui l’ID applicazione. Se la casella è aziendale, un amministratore può dover approvare l’accesso.',
   'googleClientId': 'ID client Google',
   'googleSecret': 'Segreto client Google',
@@ -564,10 +572,14 @@ const _en = {
   'serviceSubtitle': 'Everything that happens, from the first pass to the last.',
   'log': 'Log',
   'clear': 'Clear',
+  'copyLog': 'Copy',
+  'logCopied': 'Log copied.',
   'logEmpty': 'Everything shows up here: classification, moves learned, alerts, connections.',
   'gmailOnce': 'Gmail connection, once',
   'microsoftOnce': 'Microsoft connection, once',
-  'gmailSteps': 'In Google Cloud Console create a project, enable the Gmail API and create a Desktop app credential. Paste the ID and secret here. On the consent screen press Publish app: do not send it for verification. The first time, Google says the app is not verified: Advanced, then continue to the app. The connection then does not expire after 7 days. Verification is only needed if the app must accept anyone, not for your own use. Do not leave it in Testing: the token dies after a week.',
+  'gmailSteps': '1. In Google Cloud Console create a project.\n2. APIs & Services, Library: enable the Gmail API.\n3. APIs & Services, OAuth consent screen. External user. Set the app name and your email.\n4. Data access, Add or remove scopes. Under Gmail API tick only the scope below. If you do not see it, paste it into the field for adding a scope by hand.\n5. Credentials, Create credentials, OAuth client ID, Desktop app. Copy the client ID and secret here.\n6. Leave the app in Testing. With this scope Google does not let you publish it for everyone: that needs verification and a security assessment. Under Audience, Test users, add the Gmail address that must sign in. Only those accounts get through, up to 100. If the address is missing, Google returns 403 access_denied.\n7. A test user’s token expires after 7 days: connect again. The first time, Google says the app is not verified: Advanced, then continue to the app.',
+  'gmailGuide': 'Steps and scopes to tick',
+  'gmailScopeNote': 'In the console it is named “Read, compose, and send emails from your Gmail account”. NeuraEC does not send mail: this scope is what reads messages, creates labels and moves them. Do not also tick gmail.readonly, gmail.send, gmail.compose, gmail.labels or gmail.metadata.',
   'microsoftSteps': 'In the Azure portal, Microsoft Entra ID, register an app for personal and work accounts. It is a public client: no secret. Set the redirect to http://127.0.0.1:8766. Delegated permissions: Mail.ReadWrite, MailboxSettings.ReadWrite, offline_access, User.Read. Paste the application ID here. For a work mailbox, an administrator may have to approve access.',
   'googleClientId': 'Google client ID',
   'googleSecret': 'Google client secret',
@@ -744,10 +756,14 @@ const _fr = {
   'serviceSubtitle': 'Tout ce qui se passe, du premier passage au dernier.',
   'log': 'Journal',
   'clear': 'Effacer',
+  'copyLog': 'Copier',
+  'logCopied': 'Journal copié.',
   'logEmpty': 'Tout apparaît ici : classement, déplacements appris, alertes, connexions.',
   'gmailOnce': 'Connexion Gmail, une seule fois',
   'microsoftOnce': 'Connexion Microsoft, une seule fois',
-  'gmailSteps': 'Dans Google Cloud Console, créez un projet, activez l’API Gmail et créez un identifiant de type Application de bureau. Collez ici l’ID et le secret. Sur l’écran de consentement, appuyez sur Publier l’application : ne l’envoyez pas en vérification. Au premier accès, Google dit que l’application n’est pas vérifiée : Paramètres avancés, puis accéder à l’application. Ainsi la connexion n’expire pas après 7 jours. La vérification ne sert que si l’application doit accepter n’importe qui, pas pour votre usage. Ne la laissez pas en mode Test : le jeton y meurt après une semaine.',
+  'gmailSteps': '1. Dans Google Cloud Console, créez un projet.\n2. API et services, Bibliothèque : activez l’API Gmail.\n3. API et services, Écran de consentement OAuth. Utilisateur externe. Nom de l’application et votre e-mail.\n4. Accès aux données, Ajouter ou supprimer des champs d’application. Dans Gmail API, cochez seulement le champ ci-dessous. S’il n’apparaît pas, collez-le dans le champ d’ajout manuel.\n5. Identifiants, Créer des identifiants, ID client OAuth, Application de bureau. Copiez ici l’ID et le secret.\n6. Laissez l’application en mode Test. Avec cette habilitation, Google ne permet pas de la publier pour tout le monde : il faut la vérification et un contrôle de sécurité. Dans Audience, Utilisateurs test, ajoutez l’adresse Gmail qui doit entrer. Seules ces adresses passent, jusqu’à 100. Si elle manque, Google répond 403 access_denied.\n7. Le jeton d’un utilisateur test expire après 7 jours : reconnectez-vous. Au premier accès, Google dit que l’application n’est pas vérifiée : Paramètres avancés, puis accéder à l’application.',
+  'gmailGuide': 'Étapes et habilitations à cocher',
+  'gmailScopeNote': 'Dans la console, il s’appelle « Read, compose, and send emails from your Gmail account ». NeuraEC n’envoie pas de courrier : cette habilitation sert à lire les messages, créer les libellés et les déplacer. Ne cochez pas en plus gmail.readonly, gmail.send, gmail.compose, gmail.labels ou gmail.metadata.',
   'microsoftSteps': 'Dans le portail Azure, Microsoft Entra ID, enregistrez une application pour les comptes personnels et professionnels. C’est un client public : pas de secret. Comme redirection, mettez http://127.0.0.1:8766. Autorisations déléguées : Mail.ReadWrite, MailboxSettings.ReadWrite, offline_access, User.Read. Collez ici l’ID d’application. Si la boîte est d’entreprise, un administrateur peut devoir approuver l’accès.',
   'googleClientId': 'ID client Google',
   'googleSecret': 'Secret client Google',
@@ -924,10 +940,14 @@ const _de = {
   'serviceSubtitle': 'Alles, was passiert, vom ersten Durchgang bis zum letzten.',
   'log': 'Protokoll',
   'clear': 'Leeren',
+  'copyLog': 'Kopieren',
+  'logCopied': 'Protokoll kopiert.',
   'logEmpty': 'Hier erscheint alles: Klassifizierung, gelernte Verschiebungen, Hinweise, Verbindungen.',
   'gmailOnce': 'Gmail-Verbindung, einmal',
   'microsoftOnce': 'Microsoft-Verbindung, einmal',
-  'gmailSteps': 'In der Google Cloud Console ein Projekt anlegen, die Gmail-API aktivieren und Anmeldedaten vom Typ Desktopanwendung erstellen. ID und Geheimnis hier einfügen. Auf dem Einwilligungsbildschirm App veröffentlichen drücken: nicht zur Prüfung schicken. Beim ersten Zugriff sagt Google, die App sei nicht geprüft: Erweitert, dann zur App. So läuft die Verbindung nicht nach 7 Tagen ab. Die Prüfung braucht es nur, wenn die App jeden annehmen soll, nicht für deinen eigenen Gebrauch. Nicht im Test lassen: dort stirbt das Token nach einer Woche.',
+  'gmailSteps': '1. In der Google Cloud Console ein Projekt anlegen.\n2. APIs und Dienste, Bibliothek: Gmail-API aktivieren.\n3. APIs und Dienste, OAuth-Zustimmungsbildschirm. Externer Nutzer. App-Name und deine E-Mail.\n4. Datenzugriff, Bereiche hinzufügen oder entfernen. Unter Gmail API nur den Bereich unten anhaken. Wenn er fehlt, in das Feld zum manuellen Hinzufügen einfügen.\n5. Anmeldedaten, Anmeldedaten erstellen, OAuth-Client-ID, Desktopanwendung. Client-ID und Geheimnis hier einfügen.\n6. Die App im Test lassen. Mit diesem Bereich lässt Google sie nicht für alle veröffentlichen: dafür braucht es die Prüfung und eine Sicherheitsbewertung. Unter Zielgruppe, Testnutzer, die Gmail-Adresse eintragen, die sich anmelden soll. Nur die kommen durch, höchstens 100. Fehlt die Adresse, antwortet Google mit 403 access_denied.\n7. Das Token eines Testnutzers läuft nach 7 Tagen ab: neu verbinden. Beim ersten Zugriff sagt Google, die App sei nicht geprüft: Erweitert, dann zur App.',
+  'gmailGuide': 'Schritte und zu setzende Berechtigungen',
+  'gmailScopeNote': 'In der Console heißt er „Read, compose, and send emails from your Gmail account“. NeuraEC sendet keine Post: dieser Bereich liest Nachrichten, legt Labels an und verschiebt sie. gmail.readonly, gmail.send, gmail.compose, gmail.labels oder gmail.metadata nicht zusätzlich anhaken.',
   'microsoftSteps': 'Im Azure-Portal, Microsoft Entra ID, eine App für persönliche und Geschäftskonten registrieren. Es ist ein öffentlicher Client: kein Geheimnis. Als Umleitung http://127.0.0.1:8766 eintragen. Delegierte Berechtigungen: Mail.ReadWrite, MailboxSettings.ReadWrite, offline_access, User.Read. Die Anwendungs-ID hier einfügen. Bei einem Firmenpostfach muss ein Administrator den Zugriff vielleicht genehmigen.',
   'googleClientId': 'Google-Client-ID',
   'googleSecret': 'Google-Clientgeheimnis',
@@ -1104,10 +1124,14 @@ const _es = {
   'serviceSubtitle': 'Todo lo que ocurre, del primer paso al último.',
   'log': 'Registro',
   'clear': 'Limpiar',
+  'copyLog': 'Copiar',
+  'logCopied': 'Registro copiado.',
   'logEmpty': 'Aquí aparece todo: clasificación, movimientos aprendidos, avisos, conexiones.',
   'gmailOnce': 'Conexión con Gmail, una sola vez',
   'microsoftOnce': 'Conexión con Microsoft, una sola vez',
-  'gmailSteps': 'En Google Cloud Console crea un proyecto, activa la API de Gmail y crea una credencial de tipo Aplicación de escritorio. Pega aquí el ID y el secreto. En la pantalla de consentimiento pulsa Publicar aplicación: no la mandes a verificación. En el primer acceso Google dice que la aplicación no está verificada: Configuración avanzada y luego ir a la aplicación. Así la conexión no caduca a los 7 días. La verificación solo hace falta si la aplicación debe aceptar a cualquiera, no para tu uso. No la dejes en Prueba: ahí el token muere a la semana.',
+  'gmailSteps': '1. En Google Cloud Console crea un proyecto.\n2. APIs y servicios, Biblioteca: activa la API de Gmail.\n3. APIs y servicios, Pantalla de consentimiento de OAuth. Usuario externo. Nombre de la app y tu correo.\n4. Acceso a los datos, Añadir o quitar permisos. En Gmail API marca solo el permiso de abajo. Si no aparece, pégalo en el campo para añadirlo a mano.\n5. Credenciales, Crear credenciales, ID de cliente de OAuth, Aplicación de escritorio. Copia aquí el ID y el secreto.\n6. Deja la aplicación en Prueba. Con este permiso Google no deja publicarla para todo el mundo: hace falta la verificación y una evaluación de seguridad. En Público, Usuarios de prueba, añade el Gmail que debe entrar. Solo esas cuentas pasan, hasta 100. Si falta, Google responde 403 access_denied.\n7. El token de un usuario de prueba caduca a los 7 días: hay que reconectar. En el primer acceso Google dice que la aplicación no está verificada: Configuración avanzada y luego ir a la aplicación.',
+  'gmailGuide': 'Pasos y permisos que hay que marcar',
+  'gmailScopeNote': 'En la consola se llama «Read, compose, and send emails from your Gmail account». NeuraEC no envía correo: este permiso sirve para leer los mensajes, crear etiquetas y moverlos. No marques también gmail.readonly, gmail.send, gmail.compose, gmail.labels o gmail.metadata.',
   'microsoftSteps': 'En el portal de Azure, Microsoft Entra ID, registra una aplicación para cuentas personales y de empresa. Es un cliente público: sin secreto. Como redirección pon http://127.0.0.1:8766. Permisos delegados: Mail.ReadWrite, MailboxSettings.ReadWrite, offline_access, User.Read. Pega aquí el ID de aplicación. Si el buzón es de empresa, un administrador puede tener que aprobar el acceso.',
   'googleClientId': 'ID de cliente de Google',
   'googleSecret': 'Secreto de cliente de Google',

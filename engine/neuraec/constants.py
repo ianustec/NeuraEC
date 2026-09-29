@@ -36,6 +36,8 @@ CONF_PER_SENDER_WEEK = 3
 
 HALF_LIFE_DAYS = 90.0
 OBSERVE_DELAY_HOURS = 24
+# One pass classifies at most this many new messages per mailbox.
+CYCLE_MAIL_LIMIT = 50
 OPEN_EXPIRE_DAYS = 30
 SENT_LOOKBACK_DAYS = 90
 

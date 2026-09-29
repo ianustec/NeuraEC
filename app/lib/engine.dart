@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -21,7 +22,7 @@ class OAuthClients {
 }
 
 class EngineResult {
-  EngineResult(this.exitCode, this.stdoutText, this.stderrText);
+  const EngineResult(this.exitCode, this.stdoutText, this.stderrText);
 
   final int exitCode;
   final String stdoutText;
@@ -312,6 +313,9 @@ class NeuraEngine {
     final model = bundledModelDir();
     return {
       'PYTHONUNBUFFERED': '1',
+      'TQDM_DISABLE': '1',
+      'HF_HUB_DISABLE_PROGRESS_BARS': '1',
+      'PYTHONWARNINGS': 'ignore:leaked semaphore:UserWarning',
       if (model != null) ...{
         'NEURA_MODEL_DIR': model,
         'HF_HUB_OFFLINE': '1',
@@ -353,9 +357,21 @@ class NeuraEngine {
   }
 
   Process? _process;
+  Process? _session;
+  Future<void>? _sessionStart;
+  _SessionCall? _sessionCall;
+  var _sessionSeq = 0;
+
+  static const _sessionCommands = {'cycle', 'predict', 'init', 'nightly', 'stats', 'manual'};
 
   Future<void> stop() async {
-    final process = _process;
+    final process = _process ?? _session;
+    _process = null;
+    _session = null;
+    _sessionStart = null;
+    final pending = _sessionCall;
+    _sessionCall = null;
+    if (pending != null && !pending.done.isCompleted) pending.done.complete(-15);
     if (process == null) return;
     try {
       process.kill(ProcessSignal.sigterm);
@@ -372,6 +388,120 @@ class NeuraEngine {
   }) async {
     await ensureLayout();
     final secret = password ?? await loadPassword();
+    if (!_sessionCommands.contains(command)) {
+      return _runOnce(command, onLine: onLine, configPath: configPath, password: secret, adapter: adapter, extra: extra);
+    }
+    try {
+      await _ensureSession();
+    } catch (error) {
+      return EngineResult(1, '', '$error');
+    }
+    final session = _session;
+    if (session == null) return const EngineResult(1, '', 'session missing');
+    final id = ++_sessionSeq;
+    final call = _SessionCall(id, onLine);
+    _sessionCall = call;
+    session.stdin.writeln(jsonEncode({
+      'id': id,
+      'cmd': command,
+      'config': configPath ?? configFile.path,
+      'data': dataDir.path,
+      'password': secret,
+      if (adapter != null) 'adapter': adapter,
+      'extra': extra,
+    }));
+    await session.stdin.flush();
+    final code = await call.done.future;
+    if (identical(_sessionCall, call)) _sessionCall = null;
+    final launch = launcher();
+    await _appendLog('$command exit=$code motore=${launch.executable}\n${call.out}${call.err}');
+    return EngineResult(code, call.out.toString(), call.err.toString());
+  }
+
+  Future<void> _ensureSession() {
+    if (_session != null) return Future<void>.value();
+    return _sessionStart ??= _startSession();
+  }
+
+  Future<void> _startSession() async {
+    final launch = launcher();
+    final ready = Completer<void>();
+    late final Process process;
+    try {
+      process = await Process.start(
+      launch.executable,
+      [...launch.prefix, 'session', '--data', dataDir.path, '--encoder', 'auto', '--config', configFile.path],
+      workingDirectory: launch.workingDirectory,
+      environment: {...Platform.environment, ...engineEnvironment()},
+    );
+    _session = process;
+    _listen(process.stdout, ready, fromError: false);
+    _listen(process.stderr, ready, fromError: true);
+    process.exitCode.then((code) {
+      if (!ready.isCompleted) ready.completeError(StateError('session exited $code'));
+      if (identical(_session, process)) {
+        _session = null;
+        _sessionStart = null;
+      }
+      final pending = _sessionCall;
+      if (pending != null && !pending.done.isCompleted) pending.done.complete(code);
+    });
+    try {
+      await ready.future.timeout(const Duration(minutes: 2));
+    } catch (error) {
+      if (identical(_session, process)) {
+        _session = null;
+        _sessionStart = null;
+      }
+      try {
+        process.kill();
+      } catch (_) {}
+      rethrow;
+    }
+    } catch (error) {
+      _sessionStart = null;
+      rethrow;
+    }
+  }
+
+  void _listen(Stream<List<int>> stream, Completer<void> ready, {required bool fromError}) {
+    stream.transform(utf8.decoder).transform(const LineSplitter()).listen((line) {
+      if (line.startsWith('@@NEURA ')) {
+        final payload = jsonDecode(line.substring('@@NEURA '.length));
+        if (payload is Map && payload['ready'] == true) {
+          if (!ready.isCompleted) ready.complete();
+          return;
+        }
+        if (payload is Map && payload['id'] != null) {
+          final pending = _sessionCall;
+          final code = payload['code'];
+          if (pending != null && pending.id == payload['id'] && !pending.done.isCompleted) {
+            pending.done.complete(code is int ? code : 1);
+          }
+        }
+        return;
+      }
+      if (_engineNoise(line)) return;
+      final pending = _sessionCall;
+      if (pending == null) return;
+      if (fromError) {
+        pending.err.writeln(line);
+      } else {
+        pending.out.writeln(line);
+      }
+      pending.onLine?.call(line);
+    });
+  }
+
+  Future<EngineResult> _runOnce(
+    String command, {
+    void Function(String line)? onLine,
+    String? configPath,
+    String? password,
+    String? adapter,
+    List<String> extra = const [],
+  }) async {
+    final secret = password ?? '';
     final oauth = command == 'auth';
     final launch = launcher();
     final process = await Process.start(
@@ -396,6 +526,7 @@ class NeuraEngine {
     final err = StringBuffer();
     Future<void> collect(Stream<List<int>> stream, StringBuffer sink) {
       return stream.transform(utf8.decoder).transform(const LineSplitter()).forEach((line) {
+        if (_engineNoise(line)) return;
         sink.writeln(line);
         onLine?.call(line);
       });
@@ -421,4 +552,19 @@ class NeuraEngine {
       mode: FileMode.append,
     );
   }
+}
+
+bool _engineNoise(String line) {
+  final text = line.toLowerCase();
+  return text.contains('loading weights') || text.contains('leaked semaphore') || text.contains('resource_tracker');
+}
+
+class _SessionCall {
+  _SessionCall(this.id, this.onLine);
+
+  final int id;
+  final void Function(String line)? onLine;
+  final done = Completer<int>();
+  final out = StringBuffer();
+  final err = StringBuffer();
 }

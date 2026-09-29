@@ -30,13 +30,16 @@ class FakeAdapter(Adapter):
         self.messages[rec.uid] = rec
         self.folders.add(rec.folder)
 
-    def fetch_unseen(self) -> list[EmailRecord]:
+    def fetch_unseen(self, *, limit: int | None = None, skip_uids: set[str] | None = None) -> list[EmailRecord]:
+        skip = skip_uids or set()
         out = []
         for rec in self.messages.values():
-            if rec.is_seen:
+            if rec.is_seen or rec.uid in skip:
                 continue
             if rec.folder in ("", "INBOX"):
                 out.append(rec)
+                if limit is not None and len(out) >= limit:
+                    break
         return out
 
     def fetch_status(

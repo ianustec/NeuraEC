@@ -125,8 +125,13 @@ def run_cycle(
                 clf = build_classifier(mailbox, encoder, data_root, prior_net=prior_net)
                 say(f"mailbox {mailbox.mailbox_id}: classifying unread")
                 with box.adapter:
+                    from neuraec.constants import CYCLE_MAIL_LIMIT
+
                     labeled = predict_unseen(mailbox, box.adapter, clf, now=now)
-                    say(f"labeled: {len(labeled)}")
+                    if len(labeled) >= CYCLE_MAIL_LIMIT:
+                        say(f"labeled: {len(labeled)}, stopped at {CYCLE_MAIL_LIMIT}")
+                    else:
+                        say(f"labeled: {len(labeled)}")
                     write_notify_queue(mailbox, labeled, data_root, now=now)
                     counts = Counter(mailbox.label_for_rank(pred.rank) for _, pred in labeled)
                     for label, count in sorted(counts.items()):

@@ -21,7 +21,7 @@ def label_names(labels: Sequence[LabelMap | str]) -> list[str]:
 class Adapter(ABC):
     """Boundary to the provider. Produces EmailRecord; does not touch user state."""
 
-    def fetch_unseen(self) -> list[EmailRecord]:
+    def fetch_unseen(self, *, limit: int | None = None, skip_uids: set[str] | None = None) -> list[EmailRecord]:
         raise NotImplementedError
 
     def fetch_status(

@@ -206,6 +206,8 @@ class ImapAdapter(Adapter):
         criteria: Any = None,
         headers_only: bool = False,
         bulk: bool | int = False,
+        limit: int | None = None,
+        skip_uids: set[str] | None = None,
     ) -> list[EmailRecord]:
         from imap_tools import AND
 
@@ -219,22 +221,31 @@ class ImapAdapter(Adapter):
             kwargs["uid_list"] = list(uid_list)
         else:
             kwargs["criteria"] = criteria if criteria is not None else AND(all=True)
+        skip = skip_uids or set()
         out: list[EmailRecord] = []
         try:
             for msg in mb.fetch(**kwargs):
                 rec = message_to_record(msg, folder)
-                if rec.uid:
-                    self._remember(rec)
-                    out.append(rec)
+                if not rec.uid or rec.uid in skip:
+                    continue
+                self._remember(rec)
+                out.append(rec)
+                if limit is not None and len(out) >= limit:
+                    break
         except Exception:
             return out
         return out
 
-    def fetch_unseen(self) -> list[EmailRecord]:
+    def fetch_unseen(self, *, limit: int | None = None, skip_uids: set[str] | None = None) -> list[EmailRecord]:
         from imap_tools import AND
 
-        recs = self._iter_folder(self.inbox, criteria=AND(seen=False), headers_only=False)
-        return recs
+        return self._iter_folder(
+            self.inbox,
+            criteria=AND(seen=False),
+            headers_only=False,
+            limit=limit,
+            skip_uids=skip_uids,
+        )
 
     def fetch_status(
         self,

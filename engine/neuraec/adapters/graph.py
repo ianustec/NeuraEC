@@ -192,11 +192,21 @@ class GraphAdapter(Adapter):
                 rec.is_answered = True
         return records
 
-    def fetch_unseen(self) -> list[EmailRecord]:
-        rows = self._pages(
-            f"{self.base}/mailFolders/inbox/messages",
-            {"$filter": "isRead eq false", "$top": "50", "$select": GRAPH_SELECT},
-        )
+    def fetch_unseen(self, *, limit: int | None = None, skip_uids: set[str] | None = None) -> list[EmailRecord]:
+        skip = skip_uids or set()
+        rows: list[dict] = []
+        url = f"{self.base}/mailFolders/inbox/messages"
+        params: dict | None = {"$filter": "isRead eq false", "$top": "50", "$select": GRAPH_SELECT}
+        while url and (limit is None or len(rows) < limit):
+            data = self._request("GET", url, params=params)
+            for row in data.get("value") or []:
+                if str(row.get("id") or "") in skip:
+                    continue
+                rows.append(row)
+                if limit is not None and len(rows) >= limit:
+                    break
+            url = "" if limit is not None and len(rows) >= limit else (data.get("@odata.nextLink") or "")
+            params = None
         recs = [self._record(row, "inbox") for row in rows]
         return self._apply_answered(recs)
 

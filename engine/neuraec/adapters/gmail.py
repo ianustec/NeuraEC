@@ -86,15 +86,22 @@ class GmailAdapter(Adapter):
         self._load_labels()
         return {name for name in self._id_by_name if is_priority_name(name, self.label_prefix)}
 
-    def _list_ids(self, query: str) -> list[str]:
+    def _list_ids(self, query: str, *, limit: int | None = None, skip: set[str] | None = None) -> list[str]:
         ids: list[str] = []
         page = None
+        skip = skip or set()
         while True:
             kwargs: dict[str, Any] = {"userId": "me", "q": query, "maxResults": 100}
             if page:
                 kwargs["pageToken"] = page
             resp = self._svc().users().messages().list(**kwargs).execute()
-            ids.extend(str(m["id"]) for m in (resp.get("messages") or []))
+            for message in resp.get("messages") or []:
+                uid = str(message["id"])
+                if uid in skip:
+                    continue
+                ids.append(uid)
+                if limit is not None and len(ids) >= limit:
+                    return ids
             page = resp.get("nextPageToken")
             if not page:
                 break
@@ -146,9 +153,9 @@ class GmailAdapter(Adapter):
                 rec.is_answered = True
         return records
 
-    def fetch_unseen(self) -> list[EmailRecord]:
+    def fetch_unseen(self, *, limit: int | None = None, skip_uids: set[str] | None = None) -> list[EmailRecord]:
         recs = []
-        for uid in self._list_ids("in:inbox is:unread"):
+        for uid in self._list_ids("in:inbox is:unread", limit=limit, skip=skip_uids):
             msg = self._get(uid)
             if msg:
                 recs.append(self._to_record(msg))

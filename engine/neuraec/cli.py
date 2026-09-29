@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import sys
 import tempfile
@@ -110,9 +111,10 @@ def _open_adapter(mailbox, kind: str | None, *, password: str | None = None, con
     )
 
 
-def _runtime(args, *, with_adapter: bool = True):
+def _runtime(args, *, with_adapter: bool = True, encoder=None):
     mailbox = load_mailbox_config(args.config)
-    encoder = resolve_encoder(args.encoder)
+    if encoder is None:
+        encoder = resolve_encoder(args.encoder)
     user_root = Path(args.data) / "users" / mailbox.user_id
     box_root = Path(args.data) / "mailboxes" / mailbox.mailbox_id
     state = UserState(
@@ -157,10 +159,10 @@ def _say(message: str) -> None:
     print(message, flush=True)
 
 
-def _open_or_reject(args):
+def _open_or_reject(args, encoder=None):
     """Open the mailbox. Prints login ok or login rejected."""
     _say("connecting to the mailbox…")
-    mailbox, adapter, clf = _runtime(args)
+    mailbox, adapter, clf = _runtime(args, encoder=encoder)
     try:
         adapter.connect()
     except Exception as exc:
@@ -199,10 +201,10 @@ def cmd_check(args) -> int:
     return 0
 
 
-def cmd_init(args) -> int:
+def cmd_init(args, encoder=None) -> int:
     from neuraec.nightly import init_mailbox
 
-    opened = _open_or_reject(args)
+    opened = _open_or_reject(args, encoder=encoder)
     if opened is None:
         return 1
     mailbox, adapter, clf = opened
@@ -219,10 +221,10 @@ def cmd_init(args) -> int:
     return 0
 
 
-def cmd_predict(args) -> int:
+def cmd_predict(args, encoder=None) -> int:
     from neuraec.nightly import observe_moves, predict_unseen, write_notify_queue
 
-    mailbox, adapter, clf = _runtime(args)
+    mailbox, adapter, clf = _runtime(args, encoder=encoder)
     with adapter:
         out = predict_unseen(mailbox, adapter, clf)
         moves = observe_moves(mailbox, adapter, clf)
@@ -237,10 +239,10 @@ def cmd_predict(args) -> int:
     return 0
 
 
-def cmd_nightly(args) -> int:
+def cmd_nightly(args, encoder=None) -> int:
     from neuraec.nightly import nightly
 
-    mailbox, adapter, clf = _runtime(args)
+    mailbox, adapter, clf = _runtime(args, encoder=encoder)
     with adapter:
         report = nightly(mailbox, adapter, clf)
     if report.kpi.get("error"):
@@ -294,7 +296,7 @@ def cmd_auth(args) -> int:
     return 0
 
 
-def cmd_cycle(args) -> int:
+def cmd_cycle(args, encoder=None) -> int:
     from neuraec.cycle import CycleMailbox, imap_password, mailbox_paths, run_cycle
 
     primary = Path(args.config)
@@ -335,28 +337,29 @@ def cmd_cycle(args) -> int:
     if not boxes:
         _say("no mailboxes")
         return 1
-    encoder = resolve_encoder(args.encoder)
+    if encoder is None:
+        encoder = resolve_encoder(args.encoder)
     results = run_cycle(boxes, encoder, args.data, progress=_say)
     if primary_id is not None and any(row.get("error") and row["mailbox_id"] == primary_id for row in results):
         return 1
     return 0
 
 
-def cmd_stats(args) -> int:
+def cmd_stats(args, encoder=None) -> int:
     from neuraec.nightly import compute_stats
 
-    _mailbox, _adapter, clf = _runtime(args, with_adapter=False)
+    _mailbox, _adapter, clf = _runtime(args, with_adapter=False, encoder=encoder)
     _print_stats(compute_stats(clf.registry))
     return 0
 
 
-def cmd_manual(args) -> int:
+def cmd_manual(args, encoder=None) -> int:
     from neuraec.nightly import apply_manual
     from neuraec.records import EmailRecord
 
     if not args.uid and not args.message_id:
         raise SystemExit("neura manual richiede --uid oppure --message-id")
-    mailbox, adapter, clf = _runtime(args)
+    mailbox, adapter, clf = _runtime(args, encoder=encoder)
     rec = EmailRecord(uid=args.uid or "", message_id=args.message_id or "")
     with adapter:
         apply_manual(mailbox, adapter, clf, rec, args.rank)
@@ -387,6 +390,81 @@ def cmd_encoder() -> int:
     source = str(local) if local is not None else ("bundled" if encoder.name.startswith("fake") else "cache")
     print(f"encoder\t{encoder.name}\t{vec.shape[0]}\t{source}\t{elapsed:.1f}s")
     return 0
+
+
+def _session_namespace(req: dict):
+    return argparse.Namespace(
+        config=Path(req["config"]),
+        data=Path(req.get("data") or ".neura-work"),
+        encoder=req.get("encoder") or "auto",
+        adapter=req.get("adapter") or None,
+        rank=int(req.get("rank") or 0),
+        uid=req.get("uid") or "",
+        message_id=req.get("message_id") or "",
+    )
+
+
+def _session_command(req: dict, encoder) -> int:
+    password = (req.get("password") or "").strip()
+    if password:
+        os.environ["NEURA_IMAP_PASSWORD"] = password
+    else:
+        os.environ.pop("NEURA_IMAP_PASSWORD", None)
+    args = _session_namespace(req)
+    cmd = req.get("cmd")
+    if cmd == "cycle":
+        return cmd_cycle(args, encoder=encoder)
+    if cmd == "predict":
+        return cmd_predict(args, encoder=encoder)
+    if cmd == "init":
+        return cmd_init(args, encoder=encoder)
+    if cmd == "nightly":
+        return cmd_nightly(args, encoder=encoder)
+    if cmd == "stats":
+        return cmd_stats(args, encoder=encoder)
+    if cmd == "manual":
+        return cmd_manual(args, encoder=encoder)
+    print(f"error: unknown command {cmd}", flush=True)
+    return 1
+
+
+def run_session(encoder) -> int:
+    """Read commands from stdin. The encoder stays loaded for the life of the process."""
+    encoder.encode("ready")
+    print('@@NEURA {"ready": true}', flush=True)
+    for raw in sys.stdin:
+        raw = raw.strip()
+        if not raw:
+            continue
+        try:
+            req = json.loads(raw)
+        except json.JSONDecodeError as exc:
+            print(f"error: {exc}", flush=True)
+            continue
+        if not isinstance(req, dict):
+            print("error: command must be an object", flush=True)
+            continue
+        if req.get("cmd") == "quit":
+            print(f'@@NEURA {json.dumps({"id": req.get("id"), "code": 0})}', flush=True)
+            return 0
+        code = 1
+        try:
+            code = _session_command(req, encoder)
+        except SystemExit as exc:
+            code = exc.code if isinstance(exc.code, int) else 1
+            print(f"error: {exc}", flush=True)
+        except Exception as exc:
+            print(f"error: {exc}", flush=True)
+            code = 1
+        print(f'@@NEURA {json.dumps({"id": req.get("id"), "code": code})}', flush=True)
+    return 0
+
+
+def cmd_session(args) -> int:
+    os.environ.setdefault("TQDM_DISABLE", "1")
+    os.environ.setdefault("HF_HUB_DISABLE_PROGRESS_BARS", "1")
+    encoder = resolve_encoder(args.encoder)
+    return run_session(encoder)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -428,6 +506,9 @@ def main(argv: list[str] | None = None) -> int:
 
     sub.add_parser("encoder", help="load the model and report whether weights come from the app or the cache")
 
+    session = sub.add_parser("session", help="keep the model loaded and run commands from stdin")
+    _add_runtime_args(session)
+
     prior = sub.add_parser("prior-train", help="train prior v1 offline and accept it only if it beats v0")
     prior.add_argument("--data", type=Path, default=Path(".neura-work"))
     prior.add_argument("--csv", type=Path, default=DEFAULT_CSV)
@@ -455,6 +536,8 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.cmd == "encoder":
         return cmd_encoder()
+    if args.cmd == "session":
+        return cmd_session(args)
     if args.cmd == "check":
         return cmd_check(args)
     if args.cmd == "init":

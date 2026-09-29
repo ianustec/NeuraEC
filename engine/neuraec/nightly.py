@@ -128,9 +128,12 @@ def _predict_unseen_locked(
     *,
     now: datetime | None = None,
 ) -> list[tuple[EmailRecord, Prediction]]:
+    from neuraec.constants import CYCLE_MAIL_LIMIT
+
     now = now or utcnow()
     out: list[tuple[EmailRecord, Prediction]] = []
-    for rec in adapter.fetch_unseen():
+    known = clf.registry.uids() if clf.registry is not None else set()
+    for rec in adapter.fetch_unseen(limit=CYCLE_MAIL_LIMIT, skip_uids=known):
         # Already classified: with labels it stays in the inbox, so it must not be predicted or notified again.
         if clf.registry is not None and clf.registry.get(rec.uid) is not None:
             continue
@@ -145,6 +148,8 @@ def _predict_unseen_locked(
         adapter.write_label(rec.uid, label)
         rec.folder = label
         out.append((rec, pred))
+        if len(out) >= CYCLE_MAIL_LIMIT:
+            break
     return out
 
 

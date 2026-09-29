@@ -35,6 +35,21 @@ def _clf(tmp_path: Path, encoder, user_id: str = "u") -> Classifier:
     return Classifier(mb, state, encoder, registry)
 
 
+def test_one_pass_classifies_at_most_fifty(tmp_path: Path):
+    from neuraec.constants import CYCLE_MAIL_LIMIT
+    from neuraec.encoder import FakeEncoder
+
+    clf = _clf(tmp_path, FakeEncoder())
+    records = []
+    for i in range(CYCLE_MAIL_LIMIT + 10):
+        rec = make_email(str(i), "other", from_addr=f"a{i}@x.it")
+        rec.is_seen = False
+        rec.folder = "INBOX"
+        records.append(rec)
+    out = predict_unseen(clf.mailbox, FakeAdapter(records), clf)
+    assert len(out) == CYCLE_MAIL_LIMIT
+
+
 def test_asc_order_puts_most_urgent_in_the_last_folder():
     from neuraec.records import LabelMap, MailboxConfig
 

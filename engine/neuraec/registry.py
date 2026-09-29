@@ -33,6 +33,10 @@ class Registry:
     def close(self) -> None:
         self._conn.close()
 
+    def uids(self) -> set[str]:
+        rows = self._conn.execute("SELECT uid FROM predictions")
+        return {str(row[0]) for row in rows if row[0]}
+
     def _create(self) -> None:
         self._conn.executescript(
             """
