@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/services.dart';
 
 /// Icona nella barra dei menu su macOS e nell'area di notifica su Windows.
@@ -38,5 +40,21 @@ class MenuBarBridge {
     } on MissingPluginException {
       return;
     }
+  }
+
+  /// Apre il programma di posta predefinito del sistema, non la finestra di NeuraEC.
+  static Future<void> openMail(String account) async {
+    try {
+      await _channel.invokeMethod('openMail', account);
+    } on MissingPluginException {
+      if (Platform.isLinux) await _openLinuxMail();
+    }
+  }
+
+  static Future<void> _openLinuxMail() async {
+    final query = await Process.run('xdg-mime', ['query', 'default', 'x-scheme-handler/mailto']);
+    final desktop = query.stdout.toString().trim();
+    if (desktop.isEmpty) return;
+    await Process.run('gtk-launch', [desktop]);
   }
 }

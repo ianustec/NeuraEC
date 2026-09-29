@@ -2,6 +2,7 @@
 
 #include <optional>
 #include <shellapi.h>
+#include <shlwapi.h>
 
 #include "flutter/generated_plugin_registrant.h"
 #include "resource.h"
@@ -24,6 +25,20 @@ std::string ReadArg(const flutter::EncodableMap& map, const std::string& key) {
     return *value;
   }
   return "";
+}
+
+void OpenDefaultMail() {
+  DWORD count = 0;
+  if (FAILED(AssocQueryStringW(ASSOCF_NONE, ASSOCSTR_EXECUTABLE, L"mailto", nullptr, nullptr, &count)) || count < 2) {
+    return;
+  }
+  std::wstring exe(count, L'\0');
+  if (FAILED(AssocQueryStringW(ASSOCF_NONE, ASSOCSTR_EXECUTABLE, L"mailto", nullptr, exe.data(), &count))) {
+    return;
+  }
+  exe.resize(wcslen(exe.c_str()));
+  if (exe.empty()) return;
+  ShellExecuteW(nullptr, L"open", exe.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
 }
 
 }  // namespace
@@ -59,6 +74,9 @@ bool FlutterWindow::OnCreate() {
           result->Success();
         } else if (call.method_name() == "show") {
           ShowFromTray();
+          result->Success();
+        } else if (call.method_name() == "openMail") {
+          OpenDefaultMail();
           result->Success();
         } else if (call.method_name() == "update") {
           if (const auto* args = std::get_if<flutter::EncodableMap>(call.arguments())) {

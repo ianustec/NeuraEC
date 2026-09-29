@@ -20,6 +20,7 @@ void main() {
     expect(notice, isNotNull);
     expect(notice!.title, 'BeC-P4 · t@ianustec.com');
     expect(notice.body, 'Fattura\nscadenza');
+    expect(notice.account, 't@ianustec.com');
   });
 
   test('più mail diventano un conteggio per cartella', () {

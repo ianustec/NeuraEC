@@ -24,6 +24,9 @@ class MainFlutterWindow: NSWindow, NSWindowDelegate {
       case "show":
         MenuBarController.shared.show()
         result(nil)
+      case "openMail":
+        MenuBarController.shared.openDefaultMail(account: (call.arguments as? String) ?? "")
+        result(nil)
       case "update":
         MenuBarController.shared.update((call.arguments as? [String: String]) ?? [:])
         result(nil)

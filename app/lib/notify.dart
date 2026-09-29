@@ -70,10 +70,13 @@ class NotifyBatch {
 }
 
 class DesktopNotice {
-  const DesktopNotice(this.title, this.body);
+  const DesktopNotice(this.title, this.body, {this.account = ''});
 
   final String title;
   final String body;
+
+  /// Casella da cui arriva l'avviso. Il clic apre il programma di posta, non NeuraEC.
+  final String account;
 }
 
 /// Regola BeC: una mail da sola porta oggetto e snippet; più mail, un conteggio per cartella.
@@ -88,7 +91,7 @@ DesktopNotice? composeNotification(
   if (kept.length == 1) {
     final item = kept.single;
     final lines = [item.subject, item.snippet].where((line) => line.trim().isNotEmpty);
-    return DesktopNotice('${folderLeaf(item.label)} · ${batch.account}', lines.join('\n'));
+    return DesktopNotice('${folderLeaf(item.label)} · ${batch.account}', lines.join('\n'), account: batch.account);
   }
   final counts = <String, int>{};
   final order = <String>[];
@@ -103,7 +106,7 @@ DesktopNotice? composeNotification(
     for (final label in order)
       countLine?.call(folderLeaf(label), counts[label]!) ?? '· ${folderLeaf(label)}: ${counts[label]} email',
   ].join('\n');
-  return DesktopNotice(batch.account, body);
+  return DesktopNotice(batch.account, body, account: batch.account);
 }
 
 /// Legge e cancella i file della coda, raggruppati per casella.
@@ -133,7 +136,7 @@ Future<List<NotifyBatch>> drainNotifyQueue(Directory home) async {
   return byMailbox.values.toList();
 }
 
-/// Notifiche locali. Su macOS il clic riapre la finestra.
+/// Notifiche locali. Il clic apre il programma di posta predefinito.
 class DesktopNotifier {
   DesktopNotifier() : _plugin = FlutterLocalNotificationsPlugin();
 
@@ -193,6 +196,7 @@ class DesktopNotifier {
           windows: WindowsNotificationDetails(),
           linux: LinuxNotificationDetails(),
         ),
+        payload: notice.account,
       );
     } catch (_) {
       // Senza permesso o senza plugin la classifica non si ferma.
@@ -200,6 +204,6 @@ class DesktopNotifier {
   }
 
   static void _opened(NotificationResponse response) {
-    if (Platform.isMacOS) MenuBarBridge.show();
+    MenuBarBridge.openMail(response.payload ?? '');
   }
 }

@@ -122,6 +122,16 @@ final class MenuBarController: NSObject {
     show()
   }
 
+  /// Il programma registrato per mailto, senza comporre un messaggio nuovo.
+  func openDefaultMail(account: String) {
+    let address = account.trimmingCharacters(in: .whitespacesAndNewlines)
+    let probe = URL(string: address.contains("@") ? "mailto:\(address)" : "mailto:")
+    guard let probe, let appURL = NSWorkspace.shared.urlForApplication(toOpen: probe) else { return }
+    let config = NSWorkspace.OpenConfiguration()
+    config.activates = true
+    NSWorkspace.shared.openApplication(at: appURL, configuration: config, completionHandler: nil)
+  }
+
   @objc private func quitApp() {
     NSApp.terminate(nil)
   }
