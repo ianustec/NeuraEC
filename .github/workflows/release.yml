@@ -87,10 +87,10 @@ jobs:
       env:
         NEURA_WIN_PFX: ${{ secrets.NEURA_WIN_PFX }}
         NEURA_WIN_PFX_PASSWORD: ${{ secrets.NEURA_WIN_PFX_PASSWORD }}
-        run: |
-          $ErrorActionPreference = 'Stop'
-          Set-Location app
-          flutter build windows --release
+      run: |
+        $ErrorActionPreference = 'Stop'
+        Set-Location app
+        flutter build windows --release
         $release = "build/windows/x64/runner/Release"
         Copy-Item -Recurse "../engine/dist/neura-engine" "$release/engine"
         Copy-Item -Recurse "../engine/dist/model" "$release/model"
